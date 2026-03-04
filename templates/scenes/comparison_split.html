@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+<title>Comparison Split</title>
+<style>
+.comparison-slide {
+    width: 1920px;
+    height: 1080px;
+    display: flex;
+    flex-direction: column;
+    padding: 60px 80px;
+    position: relative;
+    overflow: hidden;
+}
+.comparison-slide .slide-title {
+    font-size: 48px;
+    font-weight: 600;
+    margin-bottom: 40px;
+    text-align: center;
+    animation: fade-up 0.6s ease-out both paused;
+}
+.comparison-slide .split-container {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+.comparison-slide .side {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 44px 48px;
+    display: flex;
+    flex-direction: column;
+    animation: fade-up 0.7s ease-out both paused;
+}
+.comparison-slide .side.left { animation-delay: 0.2s; border-top: 4px solid var(--accent-rose); }
+.comparison-slide .side.right { animation-delay: 0.4s; border-top: 4px solid var(--accent-emerald); }
+.comparison-slide .side h2 {
+    font-size: 36px;
+    margin-bottom: 28px;
+}
+.comparison-slide .side ul {
+    list-style: none;
+    padding: 0;
+    flex: 1;
+}
+.comparison-slide .side li {
+    font-size: 28px;
+    color: var(--text-secondary);
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.4;
+}
+.comparison-slide .side li:last-child { border-bottom: none; }
+.comparison-slide .vs-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    flex-shrink: 0;
+}
+.comparison-slide .vs-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg-accent);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    animation: scale-in 0.5s ease-out 0.6s both paused;
+}
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+    from { opacity: 0; transform: scale(0); }
+    to   { opacity: 1; transform: scale(1); }
+}
+</style>
+</head>
+<body>
+<div class="comparison-slide">
+    <div class="slide-title" id="title"></div>
+    <div class="split-container">
+        <div class="side left" id="leftSide">
+            <h2 id="leftTitle"></h2>
+            <ul id="leftItems"></ul>
+        </div>
+        <div class="vs-divider">
+            <div class="vs-badge">VS</div>
+        </div>
+        <div class="side right" id="rightSide">
+            <h2 id="rightTitle"></h2>
+            <ul id="rightItems"></ul>
+        </div>
+    </div>
+</div>
+<script>
+const D = window.SCENE_DATA || {};
+document.getElementById('title').textContent = D.title || '';
+document.getElementById('leftTitle').textContent = (D.left && D.left.heading) || '';
+document.getElementById('rightTitle').textContent = (D.right && D.right.heading) || '';
+function fillList(el, items) {
+    (items || []).forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        el.appendChild(li);
+    });
+}
+fillList(document.getElementById('leftItems'), D.left && D.left.points);
+fillList(document.getElementById('rightItems'), D.right && D.right.points);
+</script>
+</body>
+</html>

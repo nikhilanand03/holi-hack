@@ -1,4 +1,4 @@
-"""Pipeline orchestrator — chains all 6 stages and tracks job status."""
+"""Pipeline orchestrator — chains all stages and tracks job status."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from typing import Any
 
 from stage1_extract import extract_pdf
 from stage2_planner import plan_scenes
-from stage3_htmlgen import generate_all_html
 from stage4_render import render_scenes
 from stage5_tts import synthesize_all
 from stage6_assembly import assemble
@@ -21,7 +20,6 @@ class Status(str, Enum):
     QUEUED = "queued"
     EXTRACTING = "extracting"
     PLANNING = "planning"
-    GENERATING_HTML = "generating_html"
     RENDERING = "rendering"
     SYNTHESIZING_TTS = "synthesizing_tts"
     ASSEMBLING = "assembling"
@@ -58,35 +56,30 @@ def run_pipeline(job_id: str) -> None:
     job_dir = Path(job["job_dir"])
 
     try:
-        # Stage 1
+        # Stage 1 — Extract PDF
         job["status"] = Status.EXTRACTING
         paper = extract_pdf(job["pdf_path"])
 
-        # Stage 2
+        # Stage 2 — Plan scenes (LLM picks templates + data)
         job["status"] = Status.PLANNING
         plan = plan_scenes(paper)
         job["scenes_total"] = len(plan.scenes)
 
-        # Stage 3
-        job["status"] = Status.GENERATING_HTML
-        html_dir = job_dir / "html"
-        html_paths = generate_all_html(plan.scenes, html_dir)
-        job["scenes_done"] = len(html_paths)
-
-        # Stage 4
+        # Stage 4 — Render templates to frames (Stage 3 eliminated)
         job["status"] = Status.RENDERING
         frames_dir = job_dir / "frames"
-        png_paths = render_scenes(html_paths, frames_dir)
+        render_results = render_scenes(plan.scenes, frames_dir)
+        job["scenes_done"] = len(render_results)
 
-        # Stage 5
+        # Stage 5 — TTS
         job["status"] = Status.SYNTHESIZING_TTS
         audio_dir = job_dir / "audio"
         narrations = [s.narration for s in plan.scenes]
         mp3_paths = synthesize_all(narrations, audio_dir)
 
-        # Stage 6
+        # Stage 6 — Assembly
         job["status"] = Status.ASSEMBLING
-        final = assemble(png_paths, mp3_paths, job_dir)
+        final = assemble(render_results, mp3_paths, job_dir)
         job["final_path"] = str(final)
         job["status"] = Status.DONE
 

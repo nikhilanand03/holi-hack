@@ -1,49 +1,147 @@
-"""Stage 4: Render HTML scenes to PNG frames using Playwright."""
+"""Stage 4: Render scenes to frames using Playwright.
+
+Animated templates: capture frame sequences at 30fps using CSS animation-delay stepping.
+Static templates: single PNG screenshot.
+"""
 
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+from template_engine import prepare_scene_html
+from template_registry import get_template
 
-async def _render_scenes(html_paths: list[Path], output_dir: Path) -> list[Path]:
+
+FPS = 30
+FRAME_INTERVAL_MS = 1000 / FPS  # ~33.33ms
+
+
+@dataclass
+class SceneRenderResult:
+    """Result of rendering a single scene."""
+    scene_index: int
+    mode: str  # "static" or "animated"
+    # For static: single PNG path
+    static_path: Path | None = None
+    # For animated: directory of frame PNGs + count
+    frames_dir: Path | None = None
+    frame_count: int = 0
+    fps: int = FPS
+    # Hold frame (last animation frame) for looping remainder
+    hold_frame_path: Path | None = None
+
+
+async def _render_scenes(scenes: list, output_dir: Path) -> list[SceneRenderResult]:
+    """Render all scenes. `scenes` are stage2_planner.Scene objects."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    png_paths: list[Path] = []
-
-    # Resolve theme.css location for file:// URLs
-    templates_dir = Path(__file__).parent / "templates"
+    results: list[SceneRenderResult] = []
 
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page(viewport={"width": 1920, "height": 1080})
 
-        for html_path in html_paths:
-            # Inject the local theme.css by rewriting the href
-            html = html_path.read_text(encoding="utf-8")
-            theme_uri = templates_dir.resolve().as_uri()
-            html = html.replace('href="theme.css"', f'href="{theme_uri}/theme.css"')
+        for i, scene in enumerate(scenes):
+            tmpl = get_template(scene.template)
+            html = prepare_scene_html(tmpl, scene.data)
 
-            # Write a temp version with resolved paths
-            tmp = html_path.with_suffix(".resolved.html")
-            tmp.write_text(html, encoding="utf-8")
+            if tmpl.animated and tmpl.animation_duration_ms > 0:
+                result = await _render_animated(
+                    page, html, i, tmpl.animation_duration_ms, output_dir
+                )
+            else:
+                result = await _render_static(page, html, i, output_dir)
 
-            await page.goto(tmp.as_uri(), wait_until="networkidle")
-            # Give KaTeX a moment to render
-            await page.wait_for_timeout(1500)
-
-            png_path = output_dir / f"{html_path.stem}.png"
-            await page.screenshot(path=str(png_path), full_page=False)
-            png_paths.append(png_path)
-
-            tmp.unlink(missing_ok=True)
+            results.append(result)
 
         await browser.close()
 
-    return png_paths
+    return results
 
 
-def render_scenes(html_paths: list[Path], output_dir: Path) -> list[Path]:
+async def _render_static(
+    page, html: str, index: int, output_dir: Path
+) -> SceneRenderResult:
+    """Take a single screenshot for a static template."""
+    tmp = output_dir / f"_tmp_scene_{index:03d}.html"
+    tmp.write_text(html, encoding="utf-8")
+
+    await page.goto(tmp.as_uri(), wait_until="networkidle")
+    await page.wait_for_timeout(2000)  # Wait for Chart.js / KaTeX
+
+    png_path = output_dir / f"scene_{index:03d}.png"
+    await page.screenshot(path=str(png_path), full_page=False)
+    tmp.unlink(missing_ok=True)
+
+    return SceneRenderResult(
+        scene_index=index,
+        mode="static",
+        static_path=png_path,
+        hold_frame_path=png_path,
+    )
+
+
+async def _render_animated(
+    page, html: str, index: int, anim_duration_ms: int, output_dir: Path
+) -> SceneRenderResult:
+    """Capture animation frames by stepping CSS animation-delay.
+
+    All animations use `animation-play-state: paused`. We set a negative
+    animation-delay on every animated element to seek to a specific time,
+    then screenshot.
+    """
+    frames_dir = output_dir / f"scene_{index:03d}_frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+
+    tmp = output_dir / f"_tmp_scene_{index:03d}.html"
+    tmp.write_text(html, encoding="utf-8")
+
+    await page.goto(tmp.as_uri(), wait_until="networkidle")
+    await page.wait_for_timeout(500)  # Let fonts/KaTeX load
+
+    total_frames = max(1, int(anim_duration_ms / FRAME_INTERVAL_MS))
+    frame_paths: list[Path] = []
+
+    for f in range(total_frames):
+        time_ms = f * FRAME_INTERVAL_MS
+
+        # Seek all paused animations to `time_ms` via negative delay offset
+        await page.evaluate(f"""() => {{
+            const els = document.querySelectorAll('*');
+            for (const el of els) {{
+                const style = getComputedStyle(el);
+                if (style.animationName && style.animationName !== 'none') {{
+                    // Preserve original delay if set, add our time offset
+                    const origDelay = parseFloat(style.animationDelay) || 0;
+                    el.style.animationDelay = (origDelay - {time_ms})  + 'ms';
+                    el.style.animationPlayState = 'paused';
+                }}
+            }}
+        }}""")
+
+        await page.wait_for_timeout(50)  # Brief settle
+
+        frame_path = frames_dir / f"frame_{f:04d}.png"
+        await page.screenshot(path=str(frame_path), full_page=False)
+        frame_paths.append(frame_path)
+
+    tmp.unlink(missing_ok=True)
+
+    hold_frame = frame_paths[-1] if frame_paths else None
+
+    return SceneRenderResult(
+        scene_index=index,
+        mode="animated",
+        frames_dir=frames_dir,
+        frame_count=len(frame_paths),
+        fps=FPS,
+        hold_frame_path=hold_frame,
+    )
+
+
+def render_scenes(scenes: list, output_dir: Path) -> list[SceneRenderResult]:
     """Synchronous wrapper around async renderer."""
-    return asyncio.run(_render_scenes(html_paths, output_dir))
+    return asyncio.run(_render_scenes(scenes, output_dir))

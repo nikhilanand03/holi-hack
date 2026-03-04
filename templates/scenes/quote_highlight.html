@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<link rel="stylesheet" href="../theme.css">
+<title>Quote Highlight</title>
+<style>
+.quote-slide {
+    width: 1920px;
+    height: 1080px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 200px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.quote-slide .quote-mark {
+    font-size: 120px;
+    color: var(--accent-indigo);
+    opacity: 0.25;
+    line-height: 1;
+    animation: fade-up 0.5s ease-out both paused;
+}
+.quote-slide .quote-text {
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-style: italic;
+    max-width: 1200px;
+    animation: fade-up 0.7s ease-out 0.2s both paused;
+}
+.quote-slide .attribution {
+    font-size: 24px;
+    color: var(--text-secondary);
+    margin-top: 32px;
+    animation: fade-up 0.6s ease-out 0.5s both paused;
+}
+.quote-slide .accent-line {
+    width: 80px;
+    height: 4px;
+    background: var(--accent-indigo);
+    border-radius: 2px;
+    margin: 24px auto 0;
+    animation: line-expand 0.6s ease-out 0.7s both paused;
+}
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes line-expand {
+    from { width: 0; }
+    to   { width: 80px; }
+}
+</style>
+</head>
+<body>
+<div class="quote-slide">
+    <div class="quote-mark">&ldquo;</div>
+    <div class="quote-text" id="quote"></div>
+    <div class="attribution" id="attribution"></div>
+    <div class="accent-line"></div>
+</div>
+<script>
+const D = window.SCENE_DATA || {};
+document.getElementById('quote').textContent = D.quote || '';
+if (D.attribution) document.getElementById('attribution').textContent = '— ' + D.attribution;
+</script>
+</body>
+</html>

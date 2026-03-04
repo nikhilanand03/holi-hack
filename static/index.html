@@ -193,7 +193,6 @@ const STATUS_LABELS = {
   queued: 'Queued...',
   extracting: 'Extracting PDF content...',
   planning: 'Planning video scenes...',
-  generating_html: 'Generating slide HTML...',
   rendering: 'Rendering frames...',
   synthesizing_tts: 'Generating narration audio...',
   assembling: 'Assembling final video...',
@@ -201,8 +200,8 @@ const STATUS_LABELS = {
   failed: 'Failed',
 };
 const STATUS_PROGRESS = {
-  queued: 0, extracting: 8, planning: 20, generating_html: 40,
-  rendering: 60, synthesizing_tts: 75, assembling: 90, done: 100,
+  queued: 0, extracting: 10, planning: 25,
+  rendering: 55, synthesizing_tts: 75, assembling: 90, done: 100,
 };
 
 uploadBtn.addEventListener('click', async () => {

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<link rel="stylesheet" href="../theme.css">
+<title>Closing Card</title>
+<style>
+.closing-card {
+    width: 1920px;
+    height: 1080px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 160px;
+    position: relative;
+    overflow: hidden;
+}
+.closing-card .top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent-emerald), var(--accent-cyan), var(--accent-indigo));
+    animation: bar-grow 1s ease-out both paused;
+}
+.closing-card h1 {
+    font-size: 56px;
+    margin-bottom: 48px;
+    animation: fade-up 0.8s ease-out both paused;
+}
+.closing-card .takeaways {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.closing-card .takeaways li {
+    font-size: 32px;
+    color: var(--text-secondary);
+    padding: 18px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    animation: fade-up 0.6s ease-out both paused;
+    line-height: 1.4;
+}
+.closing-card .takeaways li::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    margin-top: 10px;
+}
+.closing-card .cta {
+    margin-top: 48px;
+    font-size: 28px;
+    color: var(--text-muted);
+    animation: fade-up 0.6s ease-out 1.5s both paused;
+}
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bar-grow {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+}
+</style>
+</head>
+<body>
+<div class="closing-card">
+    <div class="top-bar"></div>
+    <h1 id="heading"></h1>
+    <ul class="takeaways" id="takeaways"></ul>
+    <div class="cta" id="cta"></div>
+</div>
+<script>
+const D = window.SCENE_DATA || {};
+document.getElementById('heading').textContent = D.heading || 'Key Takeaways';
+const ul = document.getElementById('takeaways');
+(D.takeaways || []).forEach((t, i) => {
+    const li = document.createElement('li');
+    li.textContent = t;
+    li.style.animationDelay = (0.3 + i * 0.25) + 's';
+    ul.appendChild(li);
+});
+if (D.cta) document.getElementById('cta').textContent = D.cta;
+</script>
+</body>
+</html>

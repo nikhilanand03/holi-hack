@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<link rel="stylesheet" href="../theme.css">
+<title>Section Header</title>
+<style>
+.section-header {
+    width: 1920px;
+    height: 1080px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 160px;
+    position: relative;
+    overflow: hidden;
+}
+.section-header .section-num {
+    font-size: 120px;
+    font-weight: 700;
+    color: var(--accent-indigo);
+    opacity: 0.15;
+    line-height: 1;
+    animation: fade-up 0.6s ease-out both paused;
+}
+.section-header h1 {
+    font-size: 60px;
+    font-weight: 700;
+    margin-top: -20px;
+    animation: fade-up 0.7s ease-out 0.2s both paused;
+}
+.section-header .tagline {
+    font-size: 28px;
+    color: var(--text-secondary);
+    margin-top: 20px;
+    max-width: 900px;
+    animation: fade-up 0.7s ease-out 0.4s both paused;
+}
+.section-header .side-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: linear-gradient(180deg, var(--accent-indigo), var(--accent-cyan));
+    animation: bar-slide 0.8s ease-out both paused;
+}
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bar-slide {
+    from { transform: scaleY(0); transform-origin: top; }
+    to   { transform: scaleY(1); transform-origin: top; }
+}
+</style>
+</head>
+<body>
+<div class="section-header">
+    <div class="side-bar"></div>
+    <div class="section-num" id="sectionNum"></div>
+    <h1 id="heading"></h1>
+    <div class="tagline" id="tagline"></div>
+</div>
+<script>
+const D = window.SCENE_DATA || {};
+document.getElementById('sectionNum').textContent = D.section_number || '';
+document.getElementById('heading').textContent = D.heading || '';
+if (D.tagline) document.getElementById('tagline').textContent = D.tagline;
+</script>
+</body>
+</html>

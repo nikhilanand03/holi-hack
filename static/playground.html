@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Template Playground</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 16px; font-weight: 600; color: #e6edf3; }
+  .header-actions { display: flex; gap: 8px; }
+
+  /* ── Main grid ──────────────────────────────────────────────────────── */
+  .main {
+    display: grid;
+    grid-template-columns: 220px 1fr 380px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ────────────────────────────────────────────────────────── */
+  .sidebar {
+    background: #161b22;
+    border-right: 1px solid #30363d;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sidebar details { margin-bottom: 2px; }
+  .sidebar summary {
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+  }
+  .sidebar summary::before { content: '\25B6'; margin-right: 6px; font-size: 9px; }
+  .sidebar details[open] > summary::before { content: '\25BC'; }
+  .sidebar button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 14px 7px 24px;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    color: #c9d1d9;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .sidebar button:hover { background: #1c2128; }
+  .sidebar button.active {
+    border-left-color: #58a6ff;
+    background: #1c2128;
+    color: #58a6ff;
+  }
+
+  /* ── Preview panel ──────────────────────────────────────────────────── */
+  .preview-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0d1117;
+  }
+  .preview-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+  }
+  .preview-toolbar label {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    color: #8b949e;
+  }
+  .preview-toolbar label:has(input:checked) { color: #58a6ff; }
+  .preview-toolbar input[type="checkbox"] { accent-color: #58a6ff; }
+  .preview-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-right: auto;
+  }
+
+  .preview-viewport {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    position: relative;
+  }
+  .preview-wrapper {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    transform-origin: center center;
+    flex-shrink: 0;
+  }
+  .preview-wrapper iframe {
+    width: 1920px;
+    height: 1080px;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    background: #0f1117;
+  }
+
+  /* ── Annotation overlay ─────────────────────────────────────────────── */
+  .annotation-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1920px;
+    height: 1080px;
+    pointer-events: none;
+    border-radius: 6px;
+  }
+  .annotation-overlay.active {
+    pointer-events: auto;
+    cursor: crosshair;
+  }
+  .pin {
+    position: absolute;
+    width: 24px; height: 24px;
+    background: #f85149;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+  .pin:hover { transform: translate(-50%, -50%) scale(1.2); }
+
+  .pin-input-popup {
+    position: absolute;
+    z-index: 20;
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    gap: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    transform: translate(-50%, 8px);
+  }
+  .pin-input-popup input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #c9d1d9;
+    padding: 4px 8px;
+    font-size: 13px;
+    width: 200px;
+    outline: none;
+    font-family: inherit;
+  }
+  .pin-input-popup input:focus { border-color: #58a6ff; }
+  .pin-input-popup button {
+    background: #238636;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  /* ── Annotations list (below preview) ───────────────────────────────── */
+  .annotations-list {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 8px 16px;
+    border-top: 1px solid #30363d;
+    flex-shrink: 0;
+    background: #161b22;
+  }
+  .annotations-list:empty { display: none; }
+  .annotation-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    border-bottom: 1px solid #21262d;
+  }
+  .annotation-item:last-child { border-bottom: none; }
+  .annotation-item .pin-badge {
+    width: 20px; height: 20px;
+    background: #f85149;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .annotation-item .text { flex: 1; color: #c9d1d9; }
+  .annotation-item .coords { color: #484f58; font-size: 11px; flex-shrink: 0; }
+  .annotation-item .del-btn {
+    background: none;
+    border: none;
+    color: #484f58;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    font-family: inherit;
+  }
+  .annotation-item .del-btn:hover { color: #f85149; }
+
+  /* ── Editor panel ───────────────────────────────────────────────────── */
+  .editor-panel {
+    display: flex;
+    flex-direction: column;
+    background: #161b22;
+    border-left: 1px solid #30363d;
+    overflow: hidden;
+  }
+  .editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+  }
+  .editor-header span { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+  .editor-panel textarea {
+    flex: 1;
+    background: #0d1117;
+    color: #c9d1d9;
+    border: none;
+    padding: 12px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+  }
+
+  /* ── Buttons ────────────────────────────────────────────────────────── */
+  .btn {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: #30363d; }
+  .btn-primary { background: #238636; border-color: #238636; color: #fff; }
+  .btn-primary:hover { background: #2ea043; }
+
+  .error-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f8514933;
+    border: 1px solid #f85149;
+    color: #f85149;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    z-index: 100;
+    animation: fade-out 3s forwards;
+  }
+  @keyframes fade-out { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>Template Playground</h1>
+  <div class="header-actions">
+    <button class="btn" id="exportBtn">Export Annotations</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- Preview -->
+  <div class="preview-panel">
+    <div class="preview-toolbar">
+      <span class="preview-name" id="previewName">Select a template</span>
+      <label><input type="checkbox" id="annotateToggle"> Annotate Mode</label>
+      <label><input type="checkbox" id="animToggle"> Play Animations</label>
+    </div>
+    <div class="preview-viewport" id="previewViewport">
+      <div class="preview-wrapper" id="previewWrapper">
+        <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+        <div class="annotation-overlay" id="annotationOverlay"></div>
+      </div>
+    </div>
+    <div class="annotations-list" id="annotationsList"></div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-panel">
+    <div class="editor-header">
+      <span>Scene Data (JSON)</span>
+      <button class="btn btn-primary" id="applyBtn">Apply</button>
+    </div>
+    <textarea id="jsonEditor" spellcheck="false" placeholder="Select a template to begin..."></textarea>
+  </div>
+</div>
+
+<script>
+// ── Example data for all 17 templates ─────────────────────────────────────
+const EXAMPLE_DATA = {
+  title_card: {
+    title: "Attention Is All You Need",
+    authors: "A. Vaswani, N. Shazeer, N. Parmar et al.",
+    subtitle: "A novel architecture based entirely on attention mechanisms"
+  },
+  flashcard_list: {
+    title: "Key Contributions",
+    items: [
+      { label: "Self-Attention", description: "Captures dependencies regardless of distance in the sequence" },
+      { label: "Multi-Head Attention", description: "Jointly attends to information from different representation subspaces" },
+      { label: "Positional Encoding", description: "Injects sequence order using sine and cosine functions" },
+      { label: "Layer Normalization", description: "Stabilizes training with normalized residual connections" }
+    ]
+  },
+  data_table: {
+    title: "Model Performance Comparison",
+    caption: "BLEU scores on WMT 2014 English-to-German translation",
+    columns: ["Model", "Params (M)", "BLEU", "Training Cost (FLOPs)"],
+    rows: [
+      ["Transformer (base)", "65", "27.3", "3.3 \u00d7 10\u00b9\u2078"],
+      ["Transformer (big)", "213", "28.4", "2.3 \u00d7 10\u00b9\u2079"],
+      ["ConvS2S", "216", "25.2", "1.5 \u00d7 10\u00b9\u2079"],
+      ["GNMT + RL", "380", "24.6", "2.0 \u00d7 10\u00b9\u2079"]
+    ],
+    highlight_columns: [2]
+  },
+  big_number: {
+    label: "Peak BLEU Score",
+    value: "28.4",
+    unit: "BLEU",
+    description: "State-of-the-art on WMT 2014 EN\u2013DE, surpassing all previous ensemble models"
+  },
+  comparison_split: {
+    title: "Transformer vs. RNN Architectures",
+    left: {
+      heading: "Transformer",
+      points: [
+        "Fully parallelizable across sequence",
+        "O(1) sequential operations",
+        "Global receptive field per layer",
+        "Scales efficiently with hardware"
+      ]
+    },
+    right: {
+      heading: "Recurrent (LSTM/GRU)",
+      points: [
+        "Inherently sequential processing",
+        "O(n) sequential operations",
+        "Limited effective context window",
+        "Harder to distribute across GPUs"
+      ]
+    }
+  },
+  quote_highlight: {
+    quote: "Attention is all you need \u2014 dispensing with recurrence and convolutions entirely, the Transformer achieves new state of the art in translation quality.",
+    attribution: "Vaswani et al., NeurIPS 2017"
+  },
+  section_header: {
+    section_number: "03",
+    heading: "Experimental Results",
+    tagline: "Evaluating translation quality and training efficiency"
+  },
+  image_with_caption: {
+    title: "Transformer Architecture",
+    caption: "Figure 1: The Transformer model architecture showing encoder-decoder stacks with multi-head attention.",
+    image_path: "https://via.placeholder.com/800x500/1e2235/9aa0b4?text=Architecture+Diagram"
+  },
+  closing_card: {
+    heading: "Key Takeaways",
+    takeaways: [
+      "Self-attention replaces recurrence for sequence transduction",
+      "Multi-head attention enables parallel contextual representations",
+      "The Transformer trains significantly faster than recurrent architectures",
+      "Achieves state-of-the-art BLEU on EN\u2013DE and EN\u2013FR benchmarks"
+    ],
+    cta: "Read the full paper at arxiv.org/abs/1706.03762"
+  },
+  bar_chart: {
+    title: "BLEU Score by Model",
+    caption: "WMT 2014 English\u2013German translation benchmark",
+    labels: ["GNMT+RL", "ConvS2S", "Transformer (base)", "Transformer (big)"],
+    values: [24.6, 25.2, 27.3, 28.4],
+    dataset_label: "BLEU",
+    y_label: "BLEU Score"
+  },
+  grouped_bar_chart: {
+    title: "Training Cost vs. BLEU",
+    caption: "Comparing compute requirements across architectures",
+    labels: ["GNMT+RL", "ConvS2S", "Transformer (base)", "Transformer (big)"],
+    datasets: [
+      { label: "BLEU Score", values: [24.6, 25.2, 27.3, 28.4] },
+      { label: "FLOPs (\u00d710\u00b9\u2078)", values: [20, 15, 3.3, 23] }
+    ],
+    y_label: "Value"
+  },
+  horizontal_bar_chart: {
+    title: "Parameter Count Comparison",
+    caption: "Millions of trainable parameters per model",
+    labels: ["Transformer (base)", "Transformer (big)", "ConvS2S", "GNMT+RL"],
+    values: [65, 213, 216, 380],
+    dataset_label: "Parameters (M)",
+    x_label: "Millions"
+  },
+  line_chart: {
+    title: "Training Perplexity Over Steps",
+    caption: "Convergence comparison on EN\u2013DE",
+    labels: ["0", "50k", "100k", "150k", "200k", "250k", "300k"],
+    datasets: [
+      { label: "Transformer", values: [15.2, 6.8, 5.1, 4.5, 4.2, 4.0, 3.9] },
+      { label: "LSTM-6", values: [16.5, 9.3, 7.2, 6.1, 5.6, 5.3, 5.1] }
+    ],
+    x_label: "Training Steps",
+    y_label: "Perplexity"
+  },
+  scatter_plot: {
+    title: "BLEU vs. Training FLOPs",
+    caption: "Higher BLEU with fewer FLOPs is better (upper-left)",
+    datasets: [
+      {
+        label: "Models",
+        points: [
+          { x: 20, y: 24.6 },
+          { x: 15, y: 25.2 },
+          { x: 3.3, y: 27.3 },
+          { x: 23, y: 28.4 }
+        ]
+      }
+    ],
+    x_label: "FLOPs (\u00d710\u00b9\u2078)",
+    y_label: "BLEU Score"
+  },
+  pie_donut_chart: {
+    title: "Attention Head Distribution",
+    caption: "Proportion of heads focusing on different linguistic relations",
+    labels: ["Positional", "Syntactic", "Rare Words", "Semantic", "Other"],
+    values: [30, 25, 15, 20, 10],
+    donut: true
+  },
+  heatmap: {
+    title: "Attention Weight Matrix",
+    caption: "Layer 5, Head 6 \u2014 capturing syntactic dependencies",
+    row_labels: ["The", "animal", "didn't", "cross", "the", "street"],
+    column_labels: ["The", "animal", "didn't", "cross", "the", "street"],
+    rows: [
+      [0.9, 0.3, 0.1, 0.1, 0.2, 0.1],
+      [0.2, 0.8, 0.1, 0.2, 0.1, 0.3],
+      [0.1, 0.2, 0.7, 0.3, 0.1, 0.1],
+      [0.1, 0.3, 0.2, 0.8, 0.1, 0.2],
+      [0.3, 0.1, 0.1, 0.1, 0.9, 0.2],
+      [0.1, 0.4, 0.1, 0.2, 0.2, 0.8]
+    ],
+    show_values: true
+  },
+  multi_metric_cards: {
+    title: "Transformer at a Glance",
+    metrics: [
+      { value: "28.4", label: "BLEU (EN\u2013DE)", description: "State-of-the-art translation quality" },
+      { value: "41.0", label: "BLEU (EN\u2013FR)", description: "Outperforms all previous single models" },
+      { value: "3.5 days", label: "Training Time", description: "8 P100 GPUs, base model" },
+      { value: "65M", label: "Parameters", description: "Base model trainable weights" }
+    ]
+  }
+};
+
+// ── State ─────────────────────────────────────────────────────────────────
+let currentTemplate = null;
+let annotations = {}; // { templateName: [{id, x, y, text, createdAt}] }
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load annotations from localStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('playground_annotations_')) {
+      const name = key.replace('playground_annotations_', '');
+      try { annotations[name] = JSON.parse(localStorage.getItem(key)); } catch {}
+    }
+  }
+
+  // Fetch template list
+  const res = await fetch('/api/templates');
+  const groups = await res.json();
+  buildSidebar(groups);
+  fitPreview();
+  window.addEventListener('resize', fitPreview);
+});
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function buildSidebar(groups) {
+  const sb = document.getElementById('sidebar');
+  for (const [group, names] of Object.entries(groups)) {
+    const det = document.createElement('details');
+    det.open = true;
+    const sum = document.createElement('summary');
+    sum.textContent = `${group} (${names.length})`;
+    det.appendChild(sum);
+    for (const name of names) {
+      const btn = document.createElement('button');
+      btn.textContent = name.replace(/_/g, ' ');
+      btn.dataset.name = name;
+      btn.onclick = () => selectTemplate(name);
+      det.appendChild(btn);
+    }
+    sb.appendChild(det);
+  }
+}
+
+// ── Select template ───────────────────────────────────────────────────────
+async function selectTemplate(name) {
+  currentTemplate = name;
+  // Update sidebar active state
+  document.querySelectorAll('.sidebar button').forEach(b => b.classList.toggle('active', b.dataset.name === name));
+  document.getElementById('previewName').textContent = name.replace(/_/g, ' ');
+  // Set editor JSON
+  const data = EXAMPLE_DATA[name] || {};
+  document.getElementById('jsonEditor').value = JSON.stringify(data, null, 2);
+  await renderPreview(name, data);
+  renderAnnotations();
+}
+
+// ── Render preview ────────────────────────────────────────────────────────
+async function renderPreview(name, data) {
+  try {
+    const res = await fetch(`/api/template-preview/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { html } = await res.json();
+
+    let finalHtml = html;
+    // Inject animation play state if toggle is on
+    if (document.getElementById('animToggle').checked) {
+      finalHtml = finalHtml.replace('</head>',
+        '<style>* { animation-play-state: running !important; }</style>\n</head>');
+    }
+
+    const frame = document.getElementById('previewFrame');
+    frame.srcdoc = finalHtml;
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+// ── Apply button ──────────────────────────────────────────────────────────
+document.getElementById('applyBtn').addEventListener('click', async () => {
+  if (!currentTemplate) return;
+  try {
+    const data = JSON.parse(document.getElementById('jsonEditor').value);
+    await renderPreview(currentTemplate, data);
+  } catch (e) {
+    showError('Invalid JSON: ' + e.message);
+  }
+});
+
+// Tab key inserts spaces in editor
+document.getElementById('jsonEditor').addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart;
+    ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(ta.selectionEnd);
+    ta.selectionStart = ta.selectionEnd = start + 2;
+  }
+});
+
+// ── Animation toggle ──────────────────────────────────────────────────────
+document.getElementById('animToggle').addEventListener('change', () => {
+  if (!currentTemplate) return;
+  try {
+    const data = JSON.parse(document.getElementById('jsonEditor').value);
+    renderPreview(currentTemplate, data);
+  } catch {}
+});
+
+// ── Fit preview scaling ───────────────────────────────────────────────────
+function fitPreview() {
+  const viewport = document.getElementById('previewViewport');
+  const wrapper = document.getElementById('previewWrapper');
+  const pad = 32;
+  const scaleX = (viewport.clientWidth - pad) / 1920;
+  const scaleY = (viewport.clientHeight - pad) / 1080;
+  const scale = Math.min(scaleX, scaleY, 1);
+  wrapper.style.transform = `scale(${scale})`;
+}
+
+// ── Annotation system ─────────────────────────────────────────────────────
+const overlay = document.getElementById('annotationOverlay');
+const annotateToggle = document.getElementById('annotateToggle');
+
+annotateToggle.addEventListener('change', () => {
+  overlay.classList.toggle('active', annotateToggle.checked);
+});
+
+overlay.addEventListener('click', (e) => {
+  if (!annotateToggle.checked || !currentTemplate) return;
+  // Don't trigger on pin clicks
+  if (e.target.closest('.pin') || e.target.closest('.pin-input-popup')) return;
+
+  const rect = overlay.getBoundingClientRect();
+  const scale = rect.width / 1920;
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+
+  showPinInput(x, y, e.clientX - rect.left, e.clientY - rect.top);
+});
+
+function showPinInput(x, y, px, py) {
+  // Remove existing popup
+  document.querySelectorAll('.pin-input-popup').forEach(el => el.remove());
+
+  const popup = document.createElement('div');
+  popup.className = 'pin-input-popup';
+  popup.style.left = (x * 100) + '%';
+  popup.style.top = (y * 100) + '%';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Annotation note...';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+
+  const save = () => {
+    const text = input.value.trim();
+    if (!text) { popup.remove(); return; }
+    if (!annotations[currentTemplate]) annotations[currentTemplate] = [];
+    annotations[currentTemplate].push({
+      id: Date.now().toString(36),
+      x, y, text,
+      createdAt: new Date().toISOString()
+    });
+    saveAnnotations();
+    renderAnnotations();
+    popup.remove();
+  };
+
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') popup.remove(); });
+  saveBtn.addEventListener('click', save);
+
+  popup.appendChild(input);
+  popup.appendChild(saveBtn);
+  overlay.appendChild(popup);
+  input.focus();
+}
+
+function saveAnnotations() {
+  for (const [name, list] of Object.entries(annotations)) {
+    if (list.length) {
+      localStorage.setItem(`playground_annotations_${name}`, JSON.stringify(list));
+    } else {
+      localStorage.removeItem(`playground_annotations_${name}`);
+    }
+  }
+}
+
+function renderAnnotations() {
+  // Pins on overlay
+  overlay.querySelectorAll('.pin').forEach(el => el.remove());
+  const list = annotations[currentTemplate] || [];
+  list.forEach((ann, i) => {
+    const pin = document.createElement('div');
+    pin.className = 'pin';
+    pin.style.left = (ann.x * 100) + '%';
+    pin.style.top = (ann.y * 100) + '%';
+    pin.textContent = i + 1;
+    pin.title = ann.text;
+    overlay.appendChild(pin);
+  });
+
+  // Annotation list below preview
+  const listEl = document.getElementById('annotationsList');
+  listEl.innerHTML = '';
+  list.forEach((ann, i) => {
+    const item = document.createElement('div');
+    item.className = 'annotation-item';
+    item.innerHTML = `
+      <span class="pin-badge">${i + 1}</span>
+      <span class="text">${escHtml(ann.text)}</span>
+      <span class="coords">(${(ann.x * 100).toFixed(0)}%, ${(ann.y * 100).toFixed(0)}%)</span>
+      <button class="del-btn" data-id="${ann.id}">&times;</button>
+    `;
+    item.querySelector('.del-btn').addEventListener('click', () => {
+      annotations[currentTemplate] = annotations[currentTemplate].filter(a => a.id !== ann.id);
+      saveAnnotations();
+      renderAnnotations();
+    });
+    listEl.appendChild(item);
+  });
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const allAnnotations = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('playground_annotations_')) {
+      const name = key.replace('playground_annotations_', '');
+      try { allAnnotations[name] = JSON.parse(localStorage.getItem(key)); } catch {}
+    }
+  }
+  if (!Object.keys(allAnnotations).length) {
+    showError('No annotations to export');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(allAnnotations, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `annotations_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showError(msg) {
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+</script>
+</body>
+</html>
