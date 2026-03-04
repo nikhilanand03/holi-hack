@@ -36,7 +36,7 @@ def plan_scenes(paper: dict) -> ScenePlan:
     client = AzureOpenAI(
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        api_version="2024-06-01",
+        api_version="2025-01-01-preview",
     )
     deployment = os.environ["AZURE_OPENAI_PLANNER_DEPLOYMENT"]
 
