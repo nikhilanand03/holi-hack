@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper to Video</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e8eaed;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 540px;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: #9aa0b4;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed #2d3348;
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: #1a1d2e;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: #60a5fa;
+    background: rgba(96, 165, 250, 0.05);
+  }
+  .dropzone-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+  .dropzone-text {
+    color: #9aa0b4;
+    font-size: 15px;
+  }
+  .dropzone-text strong {
+    color: #60a5fa;
+  }
+  .file-input { display: none; }
+  .file-name {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #60a5fa;
+  }
+
+  /* Button */
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    border: none;
+    border-radius: 12px;
+    color: #0f1117;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Status */
+  .status-area {
+    margin-top: 28px;
+    display: none;
+  }
+  .status-area.visible { display: block; }
+  .status-label {
+    font-size: 13px;
+    color: #9aa0b4;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .progress-bar-bg {
+    height: 6px;
+    background: #1e2235;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .status-text {
+    font-size: 14px;
+    color: #e8eaed;
+  }
+  .status-text.error { color: #f87171; }
+
+  /* Download */
+  .download-area {
+    margin-top: 20px;
+    display: none;
+  }
+  .download-area.visible { display: block; }
+  .btn-download {
+    background: linear-gradient(135deg, #34d399, #60a5fa);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Paper to Video</h1>
+  <p class="subtitle">Upload a scientific PDF and get an explainer video.</p>
+
+  <div class="dropzone" id="dropzone">
+    <div class="dropzone-icon">&#128196;</div>
+    <div class="dropzone-text">
+      <strong>Click to upload</strong> or drag & drop<br>PDF files only
+    </div>
+    <div class="file-name" id="fileName"></div>
+  </div>
+  <input type="file" accept=".pdf" class="file-input" id="fileInput">
+
+  <button class="btn" id="uploadBtn" disabled>Generate Video</button>
+
+  <div class="status-area" id="statusArea">
+    <div class="status-label">Progress</div>
+    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="status-text" id="statusText">Waiting...</div>
+  </div>
+
+  <div class="download-area" id="downloadArea">
+    <a class="btn btn-download" id="downloadLink" href="#">Download MP4</a>
+  </div>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileName = document.getElementById('fileName');
+const uploadBtn = document.getElementById('uploadBtn');
+const statusArea = document.getElementById('statusArea');
+const progressBar = document.getElementById('progressBar');
+const statusText = document.getElementById('statusText');
+const downloadArea = document.getElementById('downloadArea');
+const downloadLink = document.getElementById('downloadLink');
+
+let selectedFile = null;
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.toLowerCase().endsWith('.pdf')) selectFile(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) selectFile(fileInput.files[0]);
+});
+
+function selectFile(file) {
+  selectedFile = file;
+  fileName.textContent = file.name;
+  uploadBtn.disabled = false;
+}
+
+const STATUS_LABELS = {
+  queued: 'Queued...',
+  extracting: 'Extracting PDF content...',
+  planning: 'Planning video scenes...',
+  generating_html: 'Generating slide HTML...',
+  rendering: 'Rendering frames...',
+  synthesizing_tts: 'Generating narration audio...',
+  assembling: 'Assembling final video...',
+  done: 'Done!',
+  failed: 'Failed',
+};
+const STATUS_PROGRESS = {
+  queued: 0, extracting: 8, planning: 20, generating_html: 40,
+  rendering: 60, synthesizing_tts: 75, assembling: 90, done: 100,
+};
+
+uploadBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  uploadBtn.disabled = true;
+  statusArea.classList.add('visible');
+  downloadArea.classList.remove('visible');
+  statusText.textContent = 'Uploading...';
+  statusText.classList.remove('error');
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const { job_id } = await res.json();
+    pollStatus(job_id);
+  } catch (err) {
+    statusText.textContent = 'Upload failed: ' + err.message;
+    statusText.classList.add('error');
+    uploadBtn.disabled = false;
+  }
+});
+
+function pollStatus(jobId) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`/status/${jobId}`);
+      const data = await res.json();
+      const label = STATUS_LABELS[data.status] || data.status;
+      statusText.textContent = label;
+      progressBar.style.width = (STATUS_PROGRESS[data.status] || 0) + '%';
+
+      if (data.status === 'done') {
+        clearInterval(interval);
+        downloadArea.classList.add('visible');
+        downloadLink.href = `/download/${jobId}`;
+      } else if (data.status === 'failed') {
+        clearInterval(interval);
+        statusText.textContent = 'Error: ' + (data.error || 'Unknown error');
+        statusText.classList.add('error');
+        uploadBtn.disabled = false;
+      }
+    } catch {
+      // ignore transient fetch errors
+    }
+  }, 2000);
+}
+</script>
+</body>
+</html>
