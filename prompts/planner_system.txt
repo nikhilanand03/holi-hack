@@ -23,89 +23,50 @@ Return ONLY valid JSON (no markdown fences):
 ```json
 { "title": "Paper Title", "authors": "Author A, Author B", "subtitle": "Optional subtitle or venue" }
 ```
+`authors` can be a string or an array of `{ "name": "...", "affiliation": "..." }` objects.
 
 ### 2. section_header — Section divider
 ```json
 { "section_number": "01", "heading": "Section Title", "tagline": "Optional short description" }
 ```
 
-### 3. closing_card — Final takeaway slide
-```json
-{ "heading": "Key Takeaways", "takeaways": ["Point 1", "Point 2", "Point 3"], "cta": "Optional call to action" }
-```
-
-### 4. flashcard_list — Numbered cards with label + description
-```json
-{ "title": "Slide Title", "items": [{ "label": "Card Heading", "description": "Explanation text" }] }
-```
-Up to 6 items. Best for step-by-step explanations, feature lists, methodology steps.
-
-### 5. big_number — Highlight a single impressive metric
+### 3. big_number — Highlight a single impressive metric
 ```json
 { "label": "METRIC NAME", "value": "94.3%", "unit": "Accuracy", "description": "Compared to 87% baseline" }
 ```
 
-### 6. comparison_split — Side-by-side comparison
-```json
-{ "title": "Method A vs Method B", "left": { "heading": "Method A", "points": ["Pro 1", "Pro 2"] }, "right": { "heading": "Method B", "points": ["Pro 1", "Pro 2"] } }
-```
-
-### 7. quote_highlight — Prominent quote
+### 4. quote_highlight — Prominent quote with attribution
 ```json
 { "quote": "The quoted text here.", "attribution": "Source or context" }
 ```
+`attribution` can be a string or `{ "name": "...", "role": "..." }`.
 
-### 8. data_table — Tabular data display
+### 5. bullet_list — Key points or contributions
+```json
+{ "title": "Key Contributions", "items": ["Point one", "Point two", "Point three"] }
+```
+Up to 6 items. Best for key findings, contributions, methodology steps.
+
+### 6. data_table — Tabular data display
 ```json
 { "title": "Results Table", "columns": ["Model", "Accuracy", "F1"], "rows": [["BERT", "94.3", "93.1"], ["GPT", "92.1", "91.5"]], "highlight_columns": [1], "caption": "Table 1: Model comparison" }
 ```
-`highlight_columns` is a list of 0-indexed column indices to emphasize. Up to ~10 rows.
+`highlight_columns` is a list of 0-indexed column indices to emphasize. Rows can also be objects with `{ "cells": [...], "highlight": true }` to highlight a specific row. Up to ~10 rows.
 
-### 9. multi_metric_cards — Multiple metrics in cards
+### 7. bar_chart — Vertical bar chart
 ```json
-{ "title": "Performance Metrics", "metrics": [{ "value": "94.3%", "label": "Accuracy", "description": "On test set" }] }
+{ "title": "Chart Title", "labels": ["A", "B", "C"], "values": [10, 20, 30], "dataset_label": "Score", "y_label": "Percentage", "highlight_index": 2, "caption": "Optional caption" }
 ```
-Up to 6 metrics. Good for results summaries.
+`highlight_index` (optional) highlights one bar in blue; others are gray.
 
-### 10. image_with_caption — Display a figure from the document
+### 8. line_chart — Line chart (trends over time)
 ```json
-{ "title": "Figure Title", "image_path": "fig_0", "caption": "Description of the figure" }
-```
-Use ONLY for figures. The `image_path` MUST be the exact key provided in the Figures section (e.g. `fig_0`, `fig_1`). Do NOT modify or invent paths. Do NOT use this for tables.
-
-### 11. bar_chart — Vertical bar chart
-```json
-{ "title": "Chart Title", "labels": ["A", "B", "C"], "values": [10, 20, 30], "dataset_label": "Score", "y_label": "Percentage", "caption": "Optional caption" }
+{ "title": "Chart Title", "labels": ["Epoch 1", "Epoch 2"], "datasets": [{ "label": "Train", "values": [0.8, 0.9] }, { "label": "Baseline", "values": [0.7, 0.75] }], "x_label": "Epoch", "y_label": "Accuracy", "caption": "Optional" }
 ```
 
-### 12. grouped_bar_chart — Multiple series bar chart
+### 9. donut_chart — Donut / pie chart with center label
 ```json
-{ "title": "Chart Title", "labels": ["Cat A", "Cat B"], "datasets": [{ "label": "Series 1", "values": [10, 20] }, { "label": "Series 2", "values": [15, 25] }], "y_label": "Score", "caption": "Optional" }
-```
-
-### 13. horizontal_bar_chart — Horizontal bars (good for rankings)
-```json
-{ "title": "Chart Title", "labels": ["Item A", "Item B"], "values": [85, 72], "dataset_label": "Score", "x_label": "Percentage", "caption": "Optional" }
-```
-
-### 14. line_chart — Line chart (trends over time)
-```json
-{ "title": "Chart Title", "labels": ["Epoch 1", "Epoch 2"], "datasets": [{ "label": "Train", "values": [0.8, 0.9], "fill": false }], "x_label": "Epoch", "y_label": "Accuracy", "caption": "Optional" }
-```
-
-### 15. scatter_plot — Scatter plot
-```json
-{ "title": "Chart Title", "datasets": [{ "label": "Group A", "points": [{ "x": 1, "y": 2 }, { "x": 3, "y": 4 }] }], "x_label": "Feature 1", "y_label": "Feature 2", "caption": "Optional" }
-```
-
-### 16. pie_donut_chart — Pie or donut chart
-```json
-{ "title": "Chart Title", "labels": ["A", "B", "C"], "values": [40, 35, 25], "donut": true, "caption": "Optional" }
-```
-
-### 17. heatmap — Grid heatmap (confusion matrix, correlation)
-```json
-{ "title": "Confusion Matrix", "column_labels": ["Cat", "Dog"], "row_labels": ["Cat", "Dog"], "rows": [[90, 10], [15, 85]], "show_values": true, "caption": "Optional" }
+{ "title": "Chart Title", "labels": ["A", "B", "C"], "values": [40, 35, 25], "center_value": "100", "center_label": "Total", "caption": "Optional" }
 ```
 
 ## Storytelling Guidelines
@@ -117,15 +78,14 @@ Figures and tables MUST appear AFTER the narrative context that discusses them. 
 Cover the ENTIRE document from introduction through conclusion. Do not skip sections. Every major section should have at least one scene. Let the content determine the number of scenes — a detailed document may need 20+ scenes.
 
 ### Table Handling
-Every table listed in the "Tables" section MUST get its own dedicated scene using the `data_table` template. Use the structured columns and rows data provided — do NOT use `image_with_caption` for tables. The narrator should explain the key findings shown in each table.
-
-### Figure Handling
-Every figure listed in the "Figures" section should get a scene using `image_with_caption` with the exact key (e.g. `fig_0`). Place figure scenes after the narrative context that discusses them, not before.
+Every table listed in the "Tables" section MUST get its own dedicated scene using the `data_table` template. Use the structured columns and rows data provided. The narrator should explain the key findings shown in each table.
 
 ### General Rules
-- Start with `title_card` and end with `closing_card`
+- Start with `title_card`
 - Use `section_header` to divide major sections
 - Use chart templates when quantitative results benefit from visualization
+- Use `bullet_list` for key points, contributions, or methodology steps
+- Use `big_number` to highlight standout metrics
 - Each narration should be 2-4 sentences, conversational but informative
 - Duration should match narration length (~150 words/min). Minimum 6 seconds, maximum 15 seconds.
 - Use the document's actual data and findings — don't invent content

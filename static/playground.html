@@ -357,16 +357,34 @@
 const EXAMPLE_DATA = {
   title_card: {
     title: "Attention Is All You Need",
-    authors: "A. Vaswani, N. Shazeer, N. Parmar et al.",
+    authors: [
+      { name: "A. Vaswani", affiliation: "Google Brain" },
+      { name: "N. Shazeer", affiliation: "Google Brain" }
+    ],
     subtitle: "A novel architecture based entirely on attention mechanisms"
   },
-  flashcard_list: {
+  section_header: {
+    section_number: "03",
+    heading: "Experimental Results",
+    tagline: "Evaluating translation quality and training efficiency"
+  },
+  big_number: {
+    label: "Peak BLEU Score",
+    value: "28.4",
+    unit: "BLEU",
+    description: "State-of-the-art on WMT 2014 EN\u2013DE, surpassing all previous ensemble models"
+  },
+  quote_highlight: {
+    quote: "Attention is all you need \u2014 dispensing with recurrence and convolutions entirely, the Transformer achieves new state of the art in translation quality.",
+    attribution: { name: "Vaswani et al.", role: "NeurIPS 2017" }
+  },
+  bullet_list: {
     title: "Key Contributions",
     items: [
-      { label: "Self-Attention", description: "Captures dependencies regardless of distance in the sequence" },
-      { label: "Multi-Head Attention", description: "Jointly attends to information from different representation subspaces" },
-      { label: "Positional Encoding", description: "Injects sequence order using sine and cosine functions" },
-      { label: "Layer Normalization", description: "Stabilizes training with normalized residual connections" }
+      "Self-attention captures dependencies regardless of distance in the sequence",
+      "Multi-head attention jointly attends to information from different representation subspaces",
+      "Positional encoding injects sequence order using sine and cosine functions",
+      "The Transformer trains significantly faster than recurrent architectures"
     ]
   },
   data_table: {
@@ -381,82 +399,13 @@ const EXAMPLE_DATA = {
     ],
     highlight_columns: [2]
   },
-  big_number: {
-    label: "Peak BLEU Score",
-    value: "28.4",
-    unit: "BLEU",
-    description: "State-of-the-art on WMT 2014 EN\u2013DE, surpassing all previous ensemble models"
-  },
-  comparison_split: {
-    title: "Transformer vs. RNN Architectures",
-    left: {
-      heading: "Transformer",
-      points: [
-        "Fully parallelizable across sequence",
-        "O(1) sequential operations",
-        "Global receptive field per layer",
-        "Scales efficiently with hardware"
-      ]
-    },
-    right: {
-      heading: "Recurrent (LSTM/GRU)",
-      points: [
-        "Inherently sequential processing",
-        "O(n) sequential operations",
-        "Limited effective context window",
-        "Harder to distribute across GPUs"
-      ]
-    }
-  },
-  quote_highlight: {
-    quote: "Attention is all you need \u2014 dispensing with recurrence and convolutions entirely, the Transformer achieves new state of the art in translation quality.",
-    attribution: "Vaswani et al., NeurIPS 2017"
-  },
-  section_header: {
-    section_number: "03",
-    heading: "Experimental Results",
-    tagline: "Evaluating translation quality and training efficiency"
-  },
-  image_with_caption: {
-    title: "Transformer Architecture",
-    caption: "Figure 1: The Transformer model architecture showing encoder-decoder stacks with multi-head attention.",
-    image_path: "https://via.placeholder.com/800x500/1e2235/9aa0b4?text=Architecture+Diagram"
-  },
-  closing_card: {
-    heading: "Key Takeaways",
-    takeaways: [
-      "Self-attention replaces recurrence for sequence transduction",
-      "Multi-head attention enables parallel contextual representations",
-      "The Transformer trains significantly faster than recurrent architectures",
-      "Achieves state-of-the-art BLEU on EN\u2013DE and EN\u2013FR benchmarks"
-    ],
-    cta: "Read the full paper at arxiv.org/abs/1706.03762"
-  },
   bar_chart: {
     title: "BLEU Score by Model",
     caption: "WMT 2014 English\u2013German translation benchmark",
     labels: ["GNMT+RL", "ConvS2S", "Transformer (base)", "Transformer (big)"],
     values: [24.6, 25.2, 27.3, 28.4],
-    dataset_label: "BLEU",
+    highlight_index: 3,
     y_label: "BLEU Score"
-  },
-  grouped_bar_chart: {
-    title: "Training Cost vs. BLEU",
-    caption: "Comparing compute requirements across architectures",
-    labels: ["GNMT+RL", "ConvS2S", "Transformer (base)", "Transformer (big)"],
-    datasets: [
-      { label: "BLEU Score", values: [24.6, 25.2, 27.3, 28.4] },
-      { label: "FLOPs (\u00d710\u00b9\u2078)", values: [20, 15, 3.3, 23] }
-    ],
-    y_label: "Value"
-  },
-  horizontal_bar_chart: {
-    title: "Parameter Count Comparison",
-    caption: "Millions of trainable parameters per model",
-    labels: ["Transformer (base)", "Transformer (big)", "ConvS2S", "GNMT+RL"],
-    values: [65, 213, 216, 380],
-    dataset_label: "Parameters (M)",
-    x_label: "Millions"
   },
   line_chart: {
     title: "Training Perplexity Over Steps",
@@ -469,53 +418,13 @@ const EXAMPLE_DATA = {
     x_label: "Training Steps",
     y_label: "Perplexity"
   },
-  scatter_plot: {
-    title: "BLEU vs. Training FLOPs",
-    caption: "Higher BLEU with fewer FLOPs is better (upper-left)",
-    datasets: [
-      {
-        label: "Models",
-        points: [
-          { x: 20, y: 24.6 },
-          { x: 15, y: 25.2 },
-          { x: 3.3, y: 27.3 },
-          { x: 23, y: 28.4 }
-        ]
-      }
-    ],
-    x_label: "FLOPs (\u00d710\u00b9\u2078)",
-    y_label: "BLEU Score"
-  },
-  pie_donut_chart: {
+  donut_chart: {
     title: "Attention Head Distribution",
     caption: "Proportion of heads focusing on different linguistic relations",
-    labels: ["Positional", "Syntactic", "Rare Words", "Semantic", "Other"],
-    values: [30, 25, 15, 20, 10],
-    donut: true
-  },
-  heatmap: {
-    title: "Attention Weight Matrix",
-    caption: "Layer 5, Head 6 \u2014 capturing syntactic dependencies",
-    row_labels: ["The", "animal", "didn't", "cross", "the", "street"],
-    column_labels: ["The", "animal", "didn't", "cross", "the", "street"],
-    rows: [
-      [0.9, 0.3, 0.1, 0.1, 0.2, 0.1],
-      [0.2, 0.8, 0.1, 0.2, 0.1, 0.3],
-      [0.1, 0.2, 0.7, 0.3, 0.1, 0.1],
-      [0.1, 0.3, 0.2, 0.8, 0.1, 0.2],
-      [0.3, 0.1, 0.1, 0.1, 0.9, 0.2],
-      [0.1, 0.4, 0.1, 0.2, 0.2, 0.8]
-    ],
-    show_values: true
-  },
-  multi_metric_cards: {
-    title: "Transformer at a Glance",
-    metrics: [
-      { value: "28.4", label: "BLEU (EN\u2013DE)", description: "State-of-the-art translation quality" },
-      { value: "41.0", label: "BLEU (EN\u2013FR)", description: "Outperforms all previous single models" },
-      { value: "3.5 days", label: "Training Time", description: "8 P100 GPUs, base model" },
-      { value: "65M", label: "Parameters", description: "Base model trainable weights" }
-    ]
+    labels: ["Positional", "Syntactic", "Rare Words", "Semantic"],
+    values: [30, 25, 15, 30],
+    center_value: "100%",
+    center_label: "Total Heads"
   }
 };
 

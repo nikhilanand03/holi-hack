@@ -12,36 +12,48 @@
     height: 1080px;
     display: flex;
     flex-direction: column;
-    padding: 80px 120px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 96px 128px;
     position: relative;
     overflow: hidden;
 }
-.chart-slide .slide-title {
-    font-size: 42px;
+.chart-slide h2 {
+    font-family: var(--font-heading);
+    font-size: 38px;
     font-weight: 600;
-    margin-bottom: 32px;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    margin-bottom: 40px;
 }
-.chart-slide .chart-wrap {
+.chart-card {
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: var(--card-padding);
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.chart-slide canvas {
-    max-width: 1600px;
-    max-height: 800px;
+.chart-card canvas {
+    max-width: 100%;
+    max-height: 100%;
 }
 .chart-slide .caption {
-    font-size: 20px;
-    color: var(--text-muted);
-    margin-top: 16px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-top: 24px;
 }
 </style>
 </head>
 <body>
 <div class="chart-slide">
-    <div class="slide-title" id="title"></div>
-    <div class="chart-wrap">
+    <h2 id="title"></h2>
+    <div class="chart-card">
         <canvas id="chart"></canvas>
     </div>
     <div class="caption" id="caption"></div>
@@ -50,7 +62,11 @@
 const D = window.SCENE_DATA || {};
 document.getElementById('title').textContent = D.title || '';
 if (D.caption) document.getElementById('caption').textContent = D.caption;
-const palette = ['#818cf8','#22d3ee','#34d399','#fbbf24','#fb7185','#60a5fa','#a78bfa','#f87171'];
+
+const values = D.values || [];
+const highlightIndex = D.highlight_index != null ? D.highlight_index : values.length - 1;
+const bgColors = values.map((_, i) => i === highlightIndex ? '#2563EB' : '#D1D5DB');
+
 const ctx = document.getElementById('chart').getContext('2d');
 new Chart(ctx, {
     type: 'bar',
@@ -58,28 +74,33 @@ new Chart(ctx, {
         labels: D.labels || [],
         datasets: [{
             label: D.dataset_label || '',
-            data: D.values || [],
-            backgroundColor: (D.values || []).map((_, i) => palette[i % palette.length]),
-            borderRadius: 6,
+            data: values,
+            backgroundColor: bgColors,
+            borderRadius: 8,
             borderSkipped: false,
+            barPercentage: 0.6,
         }]
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
         animation: false,
         plugins: {
-            legend: { display: !!D.dataset_label, labels: { color: '#9aa0b4', font: { size: 24 } } },
+            legend: { display: false },
+            datalabels: false,
         },
         scales: {
             x: {
-                ticks: { color: '#9aa0b4', font: { size: 22 } },
-                grid: { color: '#2d3348' },
+                ticks: { color: '#6B7280', font: { family: 'Inter', size: 16 } },
+                grid: { display: false },
+                border: { color: '#D1D5DB' },
             },
             y: {
-                ticks: { color: '#9aa0b4', font: { size: 22 } },
-                grid: { color: '#2d3348' },
-                beginAtZero: true,
-                title: { display: !!D.y_label, text: D.y_label || '', color: '#9aa0b4', font: { size: 24 } },
+                ticks: { color: '#6B7280', font: { family: 'Inter', size: 16 } },
+                grid: { color: '#F3F4F6', lineWidth: 1 },
+                border: { color: '#D1D5DB' },
+                beginAtZero: D.begin_at_zero !== false,
+                title: { display: !!D.y_label, text: D.y_label || '', color: '#6B7280', font: { family: 'Inter', size: 16 } },
             }
         }
     }

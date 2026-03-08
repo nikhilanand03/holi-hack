@@ -11,116 +11,133 @@
     height: 1080px;
     display: flex;
     flex-direction: column;
-    padding: 60px 80px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 96px 128px;
     position: relative;
     overflow: hidden;
 }
-.table-slide .slide-title {
-    font-size: 48px;
+.table-slide h2 {
+    font-family: var(--font-heading);
+    font-size: 38px;
     font-weight: 600;
-    margin-bottom: 36px;
-    animation: fade-up 0.6s ease-out both paused;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    margin-bottom: 40px;
+    animation: fade-up 0.6s ease-out both;
 }
-.table-slide .table-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-}
-.table-slide table {
+.table-wrap {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 28px;
-    border: 2px solid var(--border);
-    border-radius: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
     overflow: hidden;
+    animation: fade-up 0.7s ease-out 0.1s both;
 }
-.table-slide th {
-    background: var(--bg-accent);
-    color: var(--accent-indigo);
-    font-weight: 600;
+.table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
     text-align: left;
-    padding: 22px 32px;
-    border-bottom: 2px solid var(--border);
-    border-right: 1px solid var(--border);
 }
-.table-slide th:last-child { border-right: none; }
-.table-slide td {
-    padding: 20px 32px;
-    border-bottom: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    color: var(--text-secondary);
-}
-.table-slide td:last-child { border-right: none; }
-.table-slide tr:last-child td { border-bottom: none; }
-.table-slide .cell-anim {
-    opacity: 0;
-    animation: cell-reveal 0.3s ease-out forwards paused;
-}
-.table-slide .highlight-cell {
-    color: var(--accent-emerald);
+.table-wrap th {
+    background: #F9FAFB;
+    font-family: var(--font-body);
+    font-size: 15px;
     font-weight: 600;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 16px 24px;
+    border-bottom: none;
+}
+.table-wrap td {
+    font-family: var(--font-body);
+    font-size: 24px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+.table-wrap tr:last-child td {
+    border-bottom: none;
+}
+.table-wrap tr.row-even {
+    background: #F9FAFB;
+}
+.table-wrap tr.row-odd {
+    background: #FFFFFF;
+}
+.table-wrap tr.row-highlight {
+    background: rgba(37, 99, 235, 0.06);
+    border-left: 3px solid var(--accent-primary);
+}
+.table-wrap tr.row-highlight td:first-child {
+    color: var(--accent-primary);
+    font-weight: 600;
+}
+.table-wrap td.mono {
+    font-family: var(--font-mono);
+    font-weight: 500;
 }
 .table-slide .caption {
-    font-size: 22px;
-    color: var(--text-muted);
-    margin-top: 20px;
-    animation: fade-up 0.5s ease-out 1s both paused;
-}
-@keyframes fade-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes cell-reveal {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-top: 24px;
+    animation: fade-up 0.7s ease-out 0.2s both;
 }
 </style>
 </head>
 <body>
 <div class="table-slide">
-    <div class="slide-title" id="title"></div>
+    <h2 id="title"></h2>
     <div class="table-wrap">
-        <table id="dataTable"></table>
+        <table id="table"></table>
     </div>
     <div class="caption" id="caption"></div>
 </div>
 <script>
 const D = window.SCENE_DATA || {};
 document.getElementById('title').textContent = D.title || '';
-if (D.caption) document.getElementById('caption').textContent = D.caption;
-
-const table = document.getElementById('dataTable');
-const headers = D.columns || [];
+if (D.caption) {
+    document.getElementById('caption').textContent = D.caption;
+} else {
+    document.getElementById('caption').style.display = 'none';
+}
+const table = document.getElementById('table');
+const columns = D.columns || [];
 const rows = D.rows || [];
 const highlightCols = D.highlight_columns || [];
-
-// Header row — cells animate left-to-right
-if (headers.length) {
-    const thead = document.createElement('thead');
-    const tr = document.createElement('tr');
-    headers.forEach((h, ci) => {
-        const th = document.createElement('th');
-        th.className = 'cell-anim';
-        th.textContent = h;
-        th.style.animationDelay = (0.2 + ci * 0.08) + 's';
-        tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-    table.appendChild(thead);
-}
-
-// Body rows — each cell animates individually, row by row then left to right
+// Header
+const thead = document.createElement('thead');
+const hrow = document.createElement('tr');
+columns.forEach((col, i) => {
+    const th = document.createElement('th');
+    th.textContent = col;
+    if (i > 0) th.style.textAlign = 'right';
+    hrow.appendChild(th);
+});
+thead.appendChild(hrow);
+table.appendChild(thead);
+// Body
 const tbody = document.createElement('tbody');
 rows.forEach((row, ri) => {
     const tr = document.createElement('tr');
-    (Array.isArray(row) ? row : []).forEach((cell, ci) => {
+    const isHighlight = row.highlight || row.isOurs ||
+        (highlightCols.length > 0 && row[0] && highlightCols.includes(row[0]));
+    if (isHighlight) {
+        tr.className = 'row-highlight';
+    } else {
+        tr.className = ri % 2 !== 0 ? 'row-even' : 'row-odd';
+    }
+    const cells = Array.isArray(row) ? row : (row.cells || Object.values(row).filter(v => typeof v !== 'boolean'));
+    cells.forEach((cell, ci) => {
         const td = document.createElement('td');
-        td.className = 'cell-anim';
         td.textContent = cell;
-        // Stagger: row offset + column offset
-        td.style.animationDelay = (0.4 + ri * 0.2 + ci * 0.08) + 's';
-        if (highlightCols.includes(ci)) td.classList.add('highlight-cell');
+        if (ci > 0) {
+            td.style.textAlign = 'right';
+            td.className = 'mono';
+        }
         tr.appendChild(td);
     });
     tbody.appendChild(tr);

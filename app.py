@@ -76,8 +76,7 @@ async def list_templates():
     layout = []
     charts = []
     chart_names = {
-        "bar_chart", "grouped_bar_chart", "horizontal_bar_chart",
-        "line_chart", "scatter_plot", "pie_donut_chart", "heatmap",
+        "bar_chart", "line_chart", "donut_chart",
     }
     for name, meta in REGISTRY.items():
         (charts if name in chart_names else layout).append(name)
