@@ -169,8 +169,11 @@ export default function Processing() {
   const [completedTime, setCompletedTime] = useState<number | null>(null);
   const [paperInfo, setPaperInfo] = useState<any>(null);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
+  const [scenesDone, setScenesDone] = useState(0);
+  const [scenesTotal, setScenesTotal] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
   const elapsedTimeRef = useRef(0);
+  const pollFailCountRef = useRef(0);
 
   const knownPaper = isExample ? mockPaperData[paperId!] : null;
 
@@ -184,8 +187,11 @@ export default function Processing() {
     pollingRef.current = setInterval(async () => {
       try {
         const status = await getJobStatus(jobId!);
+        pollFailCountRef.current = 0;
         const stageIdx = statusToStageIndex(status.status);
         setCurrentStage(stageIdx);
+        setScenesTotal(status.scenes_total);
+        setScenesDone(status.scenes_done);
 
         // After extraction, try to fetch real paper info
         if (stageIdx >= 1 && !paperInfo) {
@@ -296,7 +302,13 @@ export default function Processing() {
           );
         }
       } catch {
-        // Backend unreachable — keep polling, it might come back
+        pollFailCountRef.current += 1;
+        if (pollFailCountRef.current >= 15) {
+          clearInterval(pollingRef.current);
+          setPipelineError(
+            "Lost connection to the pipeline. The job may have been interrupted by a server restart. Please try again."
+          );
+        }
       }
     }, 2000);
 
@@ -629,6 +641,16 @@ export default function Processing() {
                           }}
                         >
                           {stage.description}
+                          {stage.id === "rendering" && isCurrent && scenesTotal > 0 && (
+                            <span style={{ color: "#2563EB", fontWeight: 500 }}>
+                              {" "}— {scenesDone}/{scenesTotal} scenes
+                            </span>
+                          )}
+                          {stage.id === "rendering" && isComplete && scenesTotal > 0 && (
+                            <span style={{ color: "#059669", fontWeight: 500 }}>
+                              {" "}— {scenesTotal}/{scenesTotal} scenes
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>

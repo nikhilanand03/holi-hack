@@ -183,16 +183,24 @@ def run_pipeline(
 
         # Stage 4 — Render templates to frames (Stage 3 eliminated)
         _notify(Status.RENDERING)
+
+        def _on_scene_done(n: int) -> None:
+            job["scenes_done"] = n
+
         if frames_only or till_stage == "render":
             preview_dir = job_dir / "preview"
-            render_results = render_scenes(plan.scenes, preview_dir, preview_only=True)
-            job["scenes_done"] = len(render_results)
+            render_results = render_scenes(
+                plan.scenes, preview_dir, preview_only=True,
+                on_scene_done=_on_scene_done,
+            )
             _notify(Status.DONE)
             return
 
         frames_dir = job_dir / "frames"
-        render_results = render_scenes(plan.scenes, frames_dir)
-        job["scenes_done"] = len(render_results)
+        render_results = render_scenes(
+            plan.scenes, frames_dir,
+            on_scene_done=_on_scene_done,
+        )
 
         # Stage 5 — TTS
         _notify(Status.SYNTHESIZING_TTS)

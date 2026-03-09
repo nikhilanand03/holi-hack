@@ -1,12 +1,14 @@
 """Stage 4: Render scenes to frames using Playwright.
 
-Animated templates: capture frame sequences at 30fps using CSS animation-delay stepping.
+Animated templates: capture frame sequences at 30fps using Web Animations API.
 Static templates: single PNG screenshot.
+Scenes are rendered in parallel using multiple browser pages.
 """
 
 from __future__ import annotations
 
 import asyncio
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -18,6 +20,7 @@ from template_registry import get_template
 
 FPS = 30
 FRAME_INTERVAL_MS = 1000 / FPS  # ~33.33ms
+MAX_CONCURRENT = int(os.environ.get("RENDER_CONCURRENCY", "4"))
 
 
 @dataclass
@@ -35,40 +38,65 @@ class SceneRenderResult:
     hold_frame_path: Path | None = None
 
 
-async def _render_scenes(
-    scenes: list, output_dir: Path, preview_only: bool = False
-) -> list[SceneRenderResult]:
-    """Render all scenes. `scenes` are stage2_planner.Scene objects.
+async def _render_single_scene(
+    browser, scene, index: int, output_dir: Path, preview_only: bool,
+) -> SceneRenderResult:
+    """Render a single scene using a dedicated browser page."""
+    page = await browser.new_page(viewport={"width": 1920, "height": 1080})
+    try:
+        tmpl = get_template(scene.template)
+        html = prepare_scene_html(tmpl, scene.data)
 
-    If preview_only=True, capture a single midpoint screenshot per scene
-    instead of full frame sequences.
-    """
+        if preview_only:
+            mid_ms = tmpl.animation_duration_ms // 2 if tmpl.animated else 0
+            result = await _render_preview(page, html, index, mid_ms, output_dir)
+        elif tmpl.animated and tmpl.animation_duration_ms > 0:
+            result = await _render_animated(
+                page, html, index, tmpl.animation_duration_ms, output_dir
+            )
+        else:
+            result = await _render_static(page, html, index, output_dir)
+
+        return result
+    finally:
+        await page.close()
+
+
+async def _render_scenes(
+    scenes: list, output_dir: Path, preview_only: bool = False,
+    on_scene_done: callable = None,
+) -> list[SceneRenderResult]:
+    """Render all scenes in parallel with bounded concurrency."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    results: list[SceneRenderResult] = []
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+    completed_count = 0
+    lock = asyncio.Lock()
+
+    async def _render_with_semaphore(scene, index):
+        nonlocal completed_count
+        async with semaphore:
+            result = await _render_single_scene(
+                browser, scene, index, output_dir, preview_only
+            )
+            async with lock:
+                completed_count += 1
+                if on_scene_done:
+                    on_scene_done(completed_count)
+            return result
 
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_page(viewport={"width": 1920, "height": 1080})
 
-        for i, scene in enumerate(scenes):
-            tmpl = get_template(scene.template)
-            html = prepare_scene_html(tmpl, scene.data)
-
-            if preview_only:
-                mid_ms = tmpl.animation_duration_ms // 2 if tmpl.animated else 0
-                result = await _render_preview(page, html, i, mid_ms, output_dir)
-            elif tmpl.animated and tmpl.animation_duration_ms > 0:
-                result = await _render_animated(
-                    page, html, i, tmpl.animation_duration_ms, output_dir
-                )
-            else:
-                result = await _render_static(page, html, i, output_dir)
-
-            results.append(result)
+        tasks = [
+            _render_with_semaphore(scene, i)
+            for i, scene in enumerate(scenes)
+        ]
+        results = await asyncio.gather(*tasks)
 
         await browser.close()
 
-    return results
+    # Results are already in order (asyncio.gather preserves task order)
+    return list(results)
 
 
 async def _render_static(
@@ -127,12 +155,7 @@ async def _render_preview(
 async def _render_animated(
     page, html: str, index: int, anim_duration_ms: int, output_dir: Path
 ) -> SceneRenderResult:
-    """Capture animation frames by stepping CSS animation-delay.
-
-    All animations use `animation-play-state: paused`. We set a negative
-    animation-delay on every animated element to seek to a specific time,
-    then screenshot.
-    """
+    """Capture animation frames by stepping through Web Animations API."""
     frames_dir = output_dir / f"scene_{index:03d}_frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
 
@@ -183,7 +206,11 @@ async def _render_animated(
 
 
 def render_scenes(
-    scenes: list, output_dir: Path, preview_only: bool = False
+    scenes: list, output_dir: Path, preview_only: bool = False,
+    on_scene_done: callable = None,
 ) -> list[SceneRenderResult]:
     """Synchronous wrapper around async renderer."""
-    return asyncio.run(_render_scenes(scenes, output_dir, preview_only=preview_only))
+    return asyncio.run(_render_scenes(
+        scenes, output_dir, preview_only=preview_only,
+        on_scene_done=on_scene_done,
+    ))
