@@ -560,15 +560,25 @@ export function getOrCreateVideoId(paperId: string): string {
   return videoId;
 }
 
+// Extract arxiv ID from a URL like https://arxiv.org/abs/1706.03762
+function extractArxivId(url?: string): string | null {
+  if (!url) return null;
+  const match = url.match(/arxiv\.org\/(?:abs|pdf)\/(\d+\.\d+)/);
+  return match ? match[1] : null;
+}
+
 // Helper to save a completed video to library
 export function saveVideoToLibrary(videoId: string, paperData: any) {
   const library = JSON.parse(localStorage.getItem("library") || "[]");
 
   const existingIndex = library.findIndex((v: any) => v.id === videoId);
 
+  const arxivId = paperData.arxivId || extractArxivId(paperData.url);
+
   const videoEntry = {
     id: videoId,
     ...paperData,
+    ...(arxivId && { arxivId }),
     generatedAt: new Date().toISOString(),
     views: existingIndex >= 0 ? library[existingIndex].views : 0,
   };
@@ -627,6 +637,50 @@ export function deleteNote(videoId: string, noteId: string) {
   const notes = getNotes(videoId);
   const filtered = notes.filter((n: any) => n.id !== noteId);
   localStorage.setItem(`notes_${videoId}`, JSON.stringify(filtered));
+}
+
+// Look up a video by its arxivId
+export function getVideoByArxivId(arxivId: string) {
+  const library = getLibrary();
+  return library.find((v: any) => v.arxivId === arxivId);
+}
+
+// Seed sample showcase items into library on first visit
+export function seedSampleItems() {
+  const library = getLibrary();
+  const SEED_KEY = "samples_seeded";
+  if (localStorage.getItem(SEED_KEY)) return;
+
+  for (const paper of examplePapers) {
+    const data = mockPaperData[paper.id];
+    if (!data) continue;
+    const alreadyExists = library.some(
+      (v: any) => v.arxivId === paper.arxivId || v.title === data.title
+    );
+    if (alreadyExists) continue;
+
+    const videoId = generateId();
+    const entry = {
+      id: videoId,
+      title: data.title,
+      authors: data.authors,
+      venue: data.venue,
+      year: data.year,
+      url: data.url,
+      abstract: data.abstract,
+      sections: data.sections,
+      scenes: data.scenes,
+      duration: data.duration,
+      arxivId: paper.arxivId,
+      generatedAt: new Date().toISOString(),
+      views: 0,
+      isSample: true,
+    };
+    library.unshift(entry);
+  }
+
+  localStorage.setItem("library", JSON.stringify(library));
+  localStorage.setItem(SEED_KEY, "1");
 }
 
 // Simple ID generator

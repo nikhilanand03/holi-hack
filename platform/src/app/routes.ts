@@ -18,6 +18,10 @@ export const router = createBrowserRouter([
     Component: Viewer,
   },
   {
+    path: "/abs/:arxivId",
+    Component: Viewer,
+  },
+  {
     path: "/library",
     Component: Library,
   },

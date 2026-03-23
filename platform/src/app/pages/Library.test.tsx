@@ -13,9 +13,12 @@ function renderLibrary() {
 }
 
 describe('Library page', () => {
-  it('shows the empty state message when library is empty', () => {
+  it('shows sample items seeded on first visit', () => {
+    localStorage.clear();
     renderLibrary();
-    expect(screen.getByText(/Your video library is empty/i)).toBeInTheDocument();
+    // Sample items are seeded, so empty state should not show
+    expect(screen.queryByText(/Your video library is empty/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Attention Is All You Need/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders video cards when the library is populated', () => {

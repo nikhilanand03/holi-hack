@@ -22,6 +22,7 @@ import {
 } from "../components/ui/tabs";
 import {
   getVideoById,
+  getVideoByArxivId,
   incrementViewCount,
   getNotes,
   saveNote,
@@ -32,7 +33,7 @@ import { getStreamUrl, getDownloadUrl } from "../lib/api";
 import { Textarea } from "../components/ui/textarea";
 
 export default function Viewer() {
-  const { videoId } = useParams();
+  const { videoId, arxivId } = useParams();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoElRef = useRef<HTMLVideoElement>(null);
@@ -53,14 +54,15 @@ export default function Viewer() {
   const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const video = getVideoById(videoId!);
+  const video = arxivId ? getVideoByArxivId(arxivId) : getVideoById(videoId!);
+  const resolvedVideoId = video?.id || videoId;
 
   useEffect(() => {
-    if (videoId) {
-      incrementViewCount(videoId);
-      setNotes(getNotes(videoId));
+    if (resolvedVideoId) {
+      incrementViewCount(resolvedVideoId);
+      setNotes(getNotes(resolvedVideoId));
     }
-  }, [videoId]);
+  }, [resolvedVideoId]);
 
   // Fullscreen toggle
   const handleFullscreen = () => {
@@ -170,19 +172,19 @@ export default function Viewer() {
 
   const handleAddNote = () => {
     if (newNoteText.trim()) {
-      saveNote(videoId!, {
+      saveNote(resolvedVideoId!, {
         timestamp: noteTimestamp,
         text: newNoteText,
       });
-      setNotes(getNotes(videoId!));
+      setNotes(getNotes(resolvedVideoId!));
       setNewNoteText("");
       setIsAddingNote(false);
     }
   };
 
   const handleDeleteNote = (noteId: string) => {
-    deleteNote(videoId!, noteId);
-    setNotes(getNotes(videoId!));
+    deleteNote(resolvedVideoId!, noteId);
+    setNotes(getNotes(resolvedVideoId!));
   };
 
   const handleNoteClick = (timestamp: number) => {
@@ -191,7 +193,10 @@ export default function Viewer() {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const shareUrl = video?.arxivId
+      ? `${window.location.origin}/abs/${video.arxivId}`
+      : window.location.href;
+    navigator.clipboard.writeText(shareUrl);
     alert("Link copied to clipboard!");
   };
 

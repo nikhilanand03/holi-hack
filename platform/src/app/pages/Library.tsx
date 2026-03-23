@@ -3,13 +3,14 @@ import { useState } from "react";
 import { Search, ArrowLeft, Play, Share2, Download, Trash2 } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { getLibrary } from "../lib/data";
+import { getLibrary, seedSampleItems } from "../lib/data";
 
 export default function Library() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "alphabetical">("recent");
   
+  seedSampleItems();
   const library = getLibrary();
 
   // Filter and sort
@@ -39,7 +40,10 @@ export default function Library() {
   };
 
   const handleShare = (videoId: string) => {
-    const url = `${window.location.origin}/v/${videoId}`;
+    const video = library.find((v: any) => v.id === videoId);
+    const url = video?.arxivId
+      ? `${window.location.origin}/abs/${video.arxivId}`
+      : `${window.location.origin}/v/${videoId}`;
     navigator.clipboard.writeText(url);
     alert('Link copied to clipboard!');
   };
@@ -162,16 +166,16 @@ export default function Library() {
                 <div 
                   className="aspect-video flex items-center justify-center cursor-pointer"
                   style={{ backgroundColor: '#F4F4F0' }}
-                  onClick={() => navigate(`/v/${video.id}`)}
+                  onClick={() => navigate(video.arxivId ? `/abs/${video.arxivId}` : `/v/${video.id}`)}
                 >
                   <div className="text-center p-6">
-                    <Play 
-                      size={48} 
+                    <Play
+                      size={48}
                       style={{ color: '#2563EB' }}
                       className="mx-auto mb-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     />
-                    <div 
-                      style={{ 
+                    <div
+                      style={{
                         fontFamily: "'Instrument Serif', serif",
                         fontSize: '18px',
                         color: '#1A1A1A'
@@ -184,14 +188,14 @@ export default function Library() {
 
                 {/* Info */}
                 <div className="p-5">
-                  <h3 
+                  <h3
                     className="mb-2 cursor-pointer hover:text-[#2563EB] transition-colors"
-                    style={{ 
+                    style={{
                       color: '#1A1A1A',
                       fontWeight: 600,
                       fontSize: '16px'
                     }}
-                    onClick={() => navigate(`/v/${video.id}`)}
+                    onClick={() => navigate(video.arxivId ? `/abs/${video.arxivId}` : `/v/${video.id}`)}
                   >
                     {video.title}
                   </h3>
@@ -207,7 +211,7 @@ export default function Library() {
                   {/* Actions */}
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => navigate(`/v/${video.id}`)}
+                      onClick={() => navigate(video.arxivId ? `/abs/${video.arxivId}` : `/v/${video.id}`)}
                       size="sm"
                       className="flex-1 gap-2"
                       style={{ backgroundColor: '#2563EB' }}

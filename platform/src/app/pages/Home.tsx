@@ -3,11 +3,12 @@ import { useNavigate } from "react-router";
 import { Upload, Link as LinkIcon, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { examplePapers, getOrCreateVideoId } from "../lib/data";
+import { examplePapers, getOrCreateVideoId, seedSampleItems } from "../lib/data";
 import { uploadPdf } from "../lib/api";
 
 export default function Home() {
   const navigate = useNavigate();
+  seedSampleItems();
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -82,8 +83,13 @@ export default function Home() {
   };
 
   const handleExampleClick = (paperId: string) => {
-    const jobId = getOrCreateVideoId(paperId);
-    navigate(`/video/${jobId}?paperId=${paperId}`);
+    const paper = examplePapers.find((p) => p.id === paperId);
+    if (paper?.arxivId) {
+      navigate(`/abs/${paper.arxivId}`);
+    } else {
+      const jobId = getOrCreateVideoId(paperId);
+      navigate(`/video/${jobId}?paperId=${paperId}`);
+    }
   };
 
   const canGenerate = (file || url.length > 0) && !isUploading;
