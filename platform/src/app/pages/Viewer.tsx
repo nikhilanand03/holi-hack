@@ -109,29 +109,30 @@ export default function Viewer() {
                     );
                   })}
 
-                  <div className="flex items-center gap-[2px] h-[5px] group-hover/progress:h-[10px] transition-all">
+                  <div className="flex items-center gap-[2px] h-[5px] group-hover/progress:h-[10px] transition-all cursor-pointer"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      const seekTime = frac * p.effectiveDuration;
+                      p.setCurrentTime(seekTime);
+                      if (p.videoElRef.current) p.videoElRef.current.currentTime = seekTime;
+                    }}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      const time = frac * p.effectiveDuration;
+                      p.setHoverTime(time);
+                      const seg = p.sceneSegments.find((s: any) => time >= s.startTime && time < s.endTime) || p.sceneSegments[p.sceneSegments.length - 1];
+                      if (seg) p.setHoveredSegment(seg.index);
+                    }}
+                    onMouseLeave={() => { p.setHoveredSegment(null); p.setHoverTime(null); }}>
                     {p.sceneSegments.map((seg: any) => {
                       let segFill = 0;
                       if (p.currentTime >= seg.endTime) segFill = 100;
                       else if (p.currentTime > seg.startTime) segFill = ((p.currentTime - seg.startTime) / (seg.endTime - seg.startTime)) * 100;
                       return (
-                        <div key={seg.scene.id} className="relative h-full rounded-sm cursor-pointer transition-all"
-                          style={{ width: `${seg.widthPercent}%`, backgroundColor: "rgba(255,255,255,0.25)", transform: p.hoveredSegment === seg.index ? "scaleY(1.4)" : "scaleY(1)", transformOrigin: "bottom" }}
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                            const seekTime = seg.startTime + frac * (seg.endTime - seg.startTime);
-                            p.setCurrentTime(seekTime);
-                            p.setCurrentSceneIndex(seg.index);
-                            if (p.videoElRef.current) p.videoElRef.current.currentTime = seekTime;
-                          }}
-                          onMouseMove={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                            p.setHoverTime(seg.startTime + frac * (seg.endTime - seg.startTime));
-                          }}
-                          onMouseEnter={() => p.setHoveredSegment(seg.index)}
-                          onMouseLeave={() => { p.setHoveredSegment(null); p.setHoverTime(null); }}>
+                        <div key={seg.scene.id} className="relative h-full rounded-sm pointer-events-none transition-all"
+                          style={{ width: `${seg.widthPercent}%`, backgroundColor: "rgba(255,255,255,0.25)", transform: p.hoveredSegment === seg.index ? "scaleY(1.4)" : "scaleY(1)", transformOrigin: "bottom" }}>
                           <div className="absolute inset-y-0 left-0 rounded-sm"
                             style={{ width: `${segFill}%`, backgroundColor: seg.index === p.currentSceneIndex ? "#2563EB" : "#93B4F5" }} />
                         </div>
