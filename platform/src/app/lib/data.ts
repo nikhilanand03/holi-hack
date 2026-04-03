@@ -99,397 +99,49 @@ export const templateInfo: Record<
   },
 };
 
-// Mock paper data with rich scenes matching planner_system.txt templates
+// Minimal mock data for demo/fallback mode. Real videos stream from blob storage.
 export const mockPaperData: Record<string, any> = {
   attention: {
     title: "Attention Is All You Need",
-    authors: [
-      "Ashish Vaswani",
-      "Noam Shazeer",
-      "Niki Parmar",
-      "Jakob Uszkoreit",
-      "Llion Jones",
-      "Aidan N. Gomez",
-      "Łukasz Kaiser",
-      "Illia Polosukhin",
-    ],
+    authors: ["Vaswani et al."],
     venue: "NeurIPS 2017",
     year: 2017,
     url: "https://arxiv.org/abs/1706.03762",
-    abstract:
-      "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train.",
+    abstract: "We propose the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
     sections: [
-      {
-        id: "intro",
-        title: "Introduction",
-        content:
-          "Recurrent neural networks, long short-term memory and gated recurrent neural networks in particular, have been firmly established as state of the art approaches in sequence modeling and transduction problems such as language modeling and machine translation. Numerous efforts have since continued to push the boundaries of recurrent language models and encoder-decoder architectures.",
-      },
-      {
-        id: "model",
-        title: "Model Architecture",
-        content:
-          "Most competitive neural sequence transduction models have an encoder-decoder structure. Here, the encoder maps an input sequence of symbol representations to a sequence of continuous representations. Given these representations, the decoder then generates an output sequence of symbols one element at a time. The Transformer follows this overall architecture using stacked self-attention and point-wise, fully connected layers for both the encoder and decoder.",
-      },
-      {
-        id: "attention-mechanism",
-        title: "Scaled Dot-Product Attention",
-        content:
-          "An attention function can be described as mapping a query and a set of key-value pairs to an output. The output is computed as a weighted sum of the values, where the weight assigned to each value is computed by a compatibility function of the query with the corresponding key. We call our particular attention 'Scaled Dot-Product Attention'. The input consists of queries and keys of dimension dk, and values of dimension dv.",
-      },
-      {
-        id: "results",
-        title: "Results",
-        content:
-          "On the WMT 2014 English-to-German translation task, the big transformer model outperforms the best previously reported models (including ensembles) by more than 2.0 BLEU, establishing a new single-model state-of-the-art BLEU score of 28.4. On the WMT 2014 English-to-French translation task, our big model achieves a BLEU score of 41.0, outperforming all of the previously published single models, at less than 1/4 the training cost.",
-      },
-      {
-        id: "conclusion",
-        title: "Conclusion",
-        content:
-          "In this work, we presented the Transformer, the first sequence transduction model based entirely on attention, replacing the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention. The Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers.",
-      },
+      { id: "intro", title: "Introduction", content: "The Transformer replaces recurrent layers with multi-headed self-attention." },
+      { id: "results", title: "Results", content: "Achieves 28.4 BLEU on WMT 2014 English-to-German." },
     ],
-    scenes: [
-      {
-        id: 1,
-        type: "title_card",
-        label: "Title",
-        duration: 8,
-        narration:
-          "Today we're looking at Attention Is All You Need, a landmark 2017 paper from Google Brain that introduced the Transformer architecture and fundamentally changed the field of natural language processing.",
-        sectionId: "intro",
-      },
-      {
-        id: 2,
-        type: "quote_highlight",
-        label: "Core Claim",
-        duration: 10,
-        narration:
-          "The paper's central thesis is bold and simple: attention mechanisms alone, without recurrence or convolutions, are sufficient for state-of-the-art sequence transduction. This was a radical departure from the dominant paradigm.",
-        sectionId: "intro",
-      },
-      {
-        id: 3,
-        type: "section_header",
-        label: "Key Contributions",
-        duration: 4,
-        narration: "Let's look at the three key contributions of this paper.",
-        sectionId: "intro",
-      },
-      {
-        id: 4,
-        type: "flashcard_list",
-        label: "Contributions",
-        duration: 15,
-        narration:
-          "The paper makes three major contributions. First, it introduces a novel architecture based entirely on attention mechanisms. Second, it eliminates the need for recurrence and convolutions. And third, it achieves state-of-the-art results while being significantly more parallelizable.",
-        sectionId: "intro",
-      },
-      {
-        id: 5,
-        type: "section_header",
-        label: "Architecture",
-        duration: 4,
-        narration: "Now let's dive into the Transformer architecture.",
-        sectionId: "model",
-      },
-      {
-        id: 6,
-        type: "image_with_caption",
-        label: "Architecture Diagram",
-        duration: 15,
-        narration:
-          "The Transformer uses an encoder-decoder structure with stacked self-attention layers. The encoder maps input tokens to continuous representations, while the decoder generates output tokens one at a time, attending to the encoder's output.",
-        sectionId: "model",
-      },
-      {
-        id: 7,
-        type: "comparison_split",
-        label: "RNN vs Transformer",
-        duration: 12,
-        narration:
-          "Compared to recurrent architectures, the Transformer offers key advantages. RNNs process tokens sequentially, creating bottlenecks. The Transformer processes all positions in parallel, dramatically reducing training time while improving quality.",
-        sectionId: "model",
-      },
-      {
-        id: 8,
-        type: "section_header",
-        label: "Attention Mechanism",
-        duration: 4,
-        narration: "The core innovation is scaled dot-product attention.",
-        sectionId: "attention-mechanism",
-      },
-      {
-        id: 9,
-        type: "big_number",
-        label: "Attention Heads",
-        duration: 10,
-        narration:
-          "The model uses 8 parallel attention heads, allowing it to jointly attend to information from different representation subspaces at different positions. This multi-head approach is key to the model's expressiveness.",
-        sectionId: "attention-mechanism",
-      },
-      {
-        id: 10,
-        type: "heatmap",
-        label: "Attention Weights",
-        duration: 12,
-        narration:
-          "Here we can see a visualization of attention weights. The model learns to attend to relevant positions — for example, when translating a word, it attends heavily to the corresponding source word and its syntactic context.",
-        sectionId: "attention-mechanism",
-      },
-      {
-        id: 11,
-        type: "section_header",
-        label: "Results",
-        duration: 4,
-        narration:
-          "Let's look at the experimental results on machine translation.",
-        sectionId: "results",
-      },
-      {
-        id: 12,
-        type: "data_table",
-        label: "BLEU Scores",
-        duration: 15,
-        narration:
-          "On the WMT 2014 English-to-German task, the Transformer achieves a BLEU score of 28.4, surpassing the best previous models by over 2 points. On English-to-French, it achieves 41.0 BLEU, outperforming all single models at a fraction of the training cost.",
-        sectionId: "results",
-      },
-      {
-        id: 13,
-        type: "multi_metric_cards",
-        label: "Key Metrics",
-        duration: 10,
-        narration:
-          "To summarize the key results: 28.4 BLEU on English-to-German with a 3.2 point improvement, and 41.0 BLEU on English-to-French with a 0.5 point improvement — all at dramatically reduced training cost.",
-        sectionId: "results",
-      },
-      {
-        id: 14,
-        type: "horizontal_bar_chart",
-        label: "Training Cost",
-        duration: 12,
-        narration:
-          "Perhaps the most striking result is the training efficiency. The Transformer requires less than one quarter of the compute of the best previous models, while achieving superior translation quality.",
-        sectionId: "results",
-      },
-      {
-        id: 15,
-        type: "closing_card",
-        label: "Takeaway",
-        duration: 10,
-        narration:
-          "The Transformer proved that attention alone is sufficient for state-of-the-art sequence transduction, opening the door to models like BERT, GPT, and the entire modern NLP landscape.",
-        sectionId: "conclusion",
-      },
-    ],
-    videoUrl: "/mock-video.mp4",
-    duration: 145,
+    scenes: [{ id: 1, type: "title_card", label: "Title", duration: 10, narration: "Attention Is All You Need introduced the Transformer." }],
+    duration: 444,
   },
   bert: {
-    title:
-      "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
-    authors: [
-      "Jacob Devlin",
-      "Ming-Wei Chang",
-      "Kenton Lee",
-      "Kristina Toutanova",
-    ],
+    title: "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+    authors: ["Devlin et al."],
     venue: "NAACL 2019",
     year: 2019,
     url: "https://arxiv.org/abs/1810.04805",
-    abstract:
-      "We introduce a new language representation model called BERT, which stands for Bidirectional Encoder Representations from Transformers. Unlike recent language representation models, BERT is designed to pre-train deep bidirectional representations from unlabeled text by jointly conditioning on both left and right context in all layers.",
+    abstract: "BERT pre-trains deep bidirectional representations by jointly conditioning on both left and right context.",
     sections: [
-      {
-        id: "intro",
-        title: "Introduction",
-        content:
-          "Language model pre-training has been shown to be effective for improving many natural language processing tasks. Pre-trained language representations can either be context-free or contextual. BERT uses a different pre-training objective: the 'masked language model' (MLM), inspired by the Cloze task.",
-      },
-      {
-        id: "pretraining",
-        title: "Pre-training Tasks",
-        content:
-          "BERT uses two unsupervised tasks for pre-training. Masked Language Model (MLM) randomly masks 15% of input tokens and predicts them. Next Sentence Prediction (NSP) determines if two sentences follow each other in the original text.",
-      },
-      {
-        id: "results",
-        title: "Results",
-        content:
-          "BERT obtains new state-of-the-art results on eleven natural language processing tasks, including pushing the GLUE score to 80.5%, MultiNLI accuracy to 86.7%, SQuAD v1.1 F1 to 93.2%, and SQuAD v2.0 F1 to 83.1%.",
-      },
+      { id: "intro", title: "Introduction", content: "BERT uses masked language modeling for bidirectional pre-training." },
+      { id: "results", title: "Results", content: "State-of-the-art on 11 NLP tasks including GLUE (80.5%) and SQuAD (93.2 F1)." },
     ],
-    scenes: [
-      {
-        id: 1,
-        type: "title_card",
-        label: "Title",
-        duration: 8,
-        narration:
-          "BERT, which stands for Bidirectional Encoder Representations from Transformers, revolutionized NLP by introducing deep bidirectional pre-training for language understanding.",
-        sectionId: "intro",
-      },
-      {
-        id: 2,
-        type: "quote_highlight",
-        label: "Core Insight",
-        duration: 10,
-        narration:
-          "The key insight of BERT is that bidirectional context matters. Unlike previous models that read text left-to-right or right-to-left, BERT conditions on both directions simultaneously in all layers.",
-        sectionId: "intro",
-      },
-      {
-        id: 3,
-        type: "section_header",
-        label: "Pre-training",
-        duration: 4,
-        narration:
-          "BERT introduces two novel pre-training tasks that enable bidirectional learning.",
-        sectionId: "pretraining",
-      },
-      {
-        id: 4,
-        type: "comparison_split",
-        label: "MLM vs Traditional LM",
-        duration: 12,
-        narration:
-          "Traditional language models predict the next word left-to-right, limiting context. BERT's Masked Language Model randomly masks 15% of tokens and predicts them using both left and right context, enabling true bidirectional representations.",
-        sectionId: "pretraining",
-      },
-      {
-        id: 5,
-        type: "flashcard_list",
-        label: "Pre-training Steps",
-        duration: 12,
-        narration:
-          "BERT's pre-training involves three steps: First, tokenize text using WordPiece. Second, randomly mask 15% of tokens and predict them (MLM). Third, predict whether two sentences are consecutive (NSP).",
-        sectionId: "pretraining",
-      },
-      {
-        id: 6,
-        type: "section_header",
-        label: "Results",
-        duration: 4,
-        narration:
-          "BERT achieves state-of-the-art results across a wide range of NLP benchmarks.",
-        sectionId: "results",
-      },
-      {
-        id: 7,
-        type: "multi_metric_cards",
-        label: "Benchmark Results",
-        duration: 12,
-        narration:
-          "BERT sets new records across the board: 80.5% on GLUE, 93.2 F1 on SQuAD v1.1, and 86.7% accuracy on MultiNLI, demonstrating the power of bidirectional pre-training.",
-        sectionId: "results",
-      },
-      {
-        id: 8,
-        type: "grouped_bar_chart",
-        label: "Task Comparison",
-        duration: 12,
-        narration:
-          "Compared to previous approaches like ELMo and GPT, BERT shows consistent improvements across all tasks. The bidirectional context proves especially valuable for tasks requiring understanding of full sentence meaning.",
-        sectionId: "results",
-      },
-      {
-        id: 9,
-        type: "closing_card",
-        label: "Takeaway",
-        duration: 8,
-        narration:
-          "BERT demonstrated that bidirectional pre-training is a powerful approach for language understanding, spawning a family of models that continue to push NLP forward.",
-        sectionId: "results",
-      },
-    ],
-    videoUrl: "/mock-video.mp4",
-    duration: 82,
+    scenes: [{ id: 1, type: "title_card", label: "Title", duration: 10, narration: "BERT revolutionized NLP with bidirectional pre-training." }],
+    duration: 382,
   },
   contextfocus: {
     title: "ContextFocus: Activation Steering for Contextual Faithfulness in Large Language Models",
-    authors: [
-      "Nikhil Anand",
-      "Shwetha Somasundaram",
-      "Anirudh Phukan",
-      "Apoorv Saxena",
-      "Koyel Mukherjee",
-    ],
+    authors: ["Anand et al."],
     venue: "arXiv",
     year: 2025,
     url: "https://arxiv.org/abs/2601.04131",
-    abstract:
-      "When external context contradicts a model's internal knowledge, the model tends to rely on memorized facts rather than the provided evidence. This work proposes ContextFocus, a lightweight activation steering method that enhances faithfulness to retrieved context without requiring model fine-tuning or significant computational overhead.",
+    abstract: "A lightweight activation steering method that enhances faithfulness to retrieved context without fine-tuning.",
     sections: [
-      {
-        id: "intro",
-        title: "Introduction",
-        content:
-          "Large language models often struggle to remain faithful to provided context when it conflicts with their parametric memory. ContextFocus addresses this by steering model activations toward contextual faithfulness.",
-      },
-      {
-        id: "method",
-        title: "Method",
-        content:
-          "ContextFocus uses activation steering vectors derived from contrastive examples to shift model behavior toward context-faithful outputs at inference time, without any fine-tuning.",
-      },
-      {
-        id: "results",
-        title: "Results",
-        content:
-          "Evaluated on the ConFiQA benchmark against baselines including ContextDPO and COIECD, ContextFocus demonstrates complementary improvements to prompting strategies and remains effective on larger models.",
-      },
+      { id: "intro", title: "Introduction", content: "LLMs struggle with contextual faithfulness when context conflicts with parametric memory." },
+      { id: "results", title: "Results", content: "Outperforms ContextDPO and COIECD on the ConFiQA benchmark." },
     ],
-    scenes: [
-      {
-        id: 1,
-        type: "title_card",
-        label: "Title",
-        duration: 8,
-        narration:
-          "ContextFocus proposes a lightweight activation steering method to make large language models more faithful to retrieved context, without any fine-tuning.",
-        sectionId: "intro",
-      },
-      {
-        id: 2,
-        type: "quote_highlight",
-        label: "The Problem",
-        duration: 10,
-        narration:
-          "When external context contradicts a model's memorized knowledge, LLMs tend to rely on their parametric memory rather than the provided evidence. This is a critical reliability issue for RAG systems.",
-        sectionId: "intro",
-      },
-      {
-        id: 3,
-        type: "flashcard_list",
-        label: "Approach",
-        duration: 12,
-        narration:
-          "ContextFocus derives steering vectors from contrastive examples and applies them at inference time to shift model activations toward context-faithful behavior.",
-        sectionId: "method",
-      },
-      {
-        id: 4,
-        type: "bar_chart",
-        label: "ConFiQA Results",
-        duration: 12,
-        narration:
-          "On the ConFiQA benchmark, ContextFocus outperforms strong baselines including ContextDPO and COIECD while maintaining fluency and efficiency.",
-        sectionId: "results",
-      },
-      {
-        id: 5,
-        type: "closing_card",
-        label: "Takeaway",
-        duration: 8,
-        narration:
-          "ContextFocus offers a practical, zero-cost solution for improving LLM faithfulness to retrieved context, complementing existing prompting strategies.",
-        sectionId: "results",
-      },
-    ],
-    videoUrl: "/mock-video.mp4",
-    duration: 340,
+    scenes: [{ id: 1, type: "title_card", label: "Title", duration: 10, narration: "ContextFocus improves LLM faithfulness to retrieved context." }],
+    duration: 397,
   },
 };
 

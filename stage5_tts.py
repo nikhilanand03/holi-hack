@@ -88,7 +88,6 @@ def synthesize_scene(
             return {
                 "path": output_path,
                 "config_time": round(t_config - t0, 3),
-                "synthesizer_init_time": round(t_end - t_synth_start - (t_end - t_synth_start), 3),
                 "synthesis_time": round(t_end - t_synth_start, 3),
                 "total_time": round(t_end - t0, 3),
                 "retry_wait_time": round(total_retry_wait, 3),
