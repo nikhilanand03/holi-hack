@@ -61,7 +61,7 @@ Centered layout with large monospace value, decorative concentric circles behind
 ```json
 { "section_number": "02", "heading": "Methodology", "tagline": "How the model works" }
 ```
-Decorative large faint number in corner, gradient accent bar on left, Instrument Serif title. Quick transition slide (3-5 seconds).
+Decorative large faint number in corner, gradient accent bar on left, Source Serif 4 title. Quick transition slide (3-5 seconds).
 
 ### 8. image_with_caption — Display an extracted figure from the paper
 ```json

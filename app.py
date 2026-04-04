@@ -17,7 +17,7 @@ logging.basicConfig(
 
 from fastapi import FastAPI, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from pipeline import create_job, get_job, run_pipeline, OUTPUT_ROOT, UPLOADED_PDFS_DIR
@@ -164,9 +164,45 @@ def _find_video(job_id: str) -> Path:
 
 
 @app.get("/stream/{job_id}")
-async def stream_video(job_id: str):
-    """Serve the video for in-browser playback."""
-    return FileResponse(_find_video(job_id), media_type="video/mp4")
+async def stream_video(job_id: str, request: Request):
+    """Serve the video with Range request support for seeking."""
+    path = _find_video(job_id)
+    file_size = path.stat().st_size
+    range_header = request.headers.get("range")
+
+    if range_header:
+        # Parse "bytes=START-END"
+        range_spec = range_header.replace("bytes=", "")
+        parts = range_spec.split("-")
+        start = int(parts[0])
+        end = int(parts[1]) if parts[1] else file_size - 1
+        end = min(end, file_size - 1)
+        length = end - start + 1
+
+        def iter_range():
+            with open(path, "rb") as f:
+                f.seek(start)
+                remaining = length
+                while remaining > 0:
+                    chunk = f.read(min(8192, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        return StreamingResponse(
+            iter_range(),
+            status_code=206,
+            headers={
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(length),
+                "Content-Type": "video/mp4",
+            },
+        )
+
+    # No Range header — return full file
+    return FileResponse(path, media_type="video/mp4", headers={"Accept-Ranges": "bytes"})
 
 
 @app.get("/download/{job_id}")

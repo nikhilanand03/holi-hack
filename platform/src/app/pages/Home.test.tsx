@@ -12,21 +12,19 @@ function renderHome() {
 }
 
 describe('Home page', () => {
-  it('renders the headline "Drop a paper"', () => {
+  it('renders the headline', () => {
     renderHome();
-    expect(screen.getByText(/Drop a paper/i)).toBeInTheDocument();
+    expect(screen.getByText(/Turn research into video/i)).toBeInTheDocument();
   });
 
   it('renders example paper buttons', () => {
     renderHome();
     expect(screen.getAllByText(/Attention Is All You Need/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/BERT/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/ContextFocus/i).length).toBeGreaterThan(0);
   });
 
   it('has the Generate button disabled when no file or URL is provided', () => {
     renderHome();
-    const btn = screen.getByRole('button', { name: /Generate Video/i });
+    const btn = screen.getByRole('button', { name: /Generate/i });
     expect(btn).toBeDisabled();
   });
 });

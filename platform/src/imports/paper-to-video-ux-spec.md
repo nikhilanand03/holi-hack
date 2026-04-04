@@ -328,10 +328,10 @@ Maximum 2 accent colors per scene. If a chart has 5 series, use 2 accents + 3 gr
 Highlighted/winning data always uses accent-primary (blue). Previous work uses text-secondary (gray).
 
 Typography
-RoleFontWeightSizeTrackingTitleInstrument Serif40060px-1pxHeadingInter60038px-0.5pxBodyInter40024px0CaptionInter40016px0.2pxNumbers/DataIBM Plex Mono50022px0EquationKaTeX default (Latin Modern)—32px—
+RoleFontWeightSizeTrackingTitleSource Serif 440060px-1pxHeadingInter60038px-0.5pxBodyInter40024px0CaptionInter40016px0.2pxNumbers/DataIBM Plex Mono50022px0EquationKaTeX default (Latin Modern)—32px—
 Rules:
 
-Instrument Serif is ONLY for the title_card template (paper title). All other headings use Inter.
+Source Serif 4 is ONLY for the title_card template (paper title). All other headings use Inter.
 Numbers in tables and charts always use IBM Plex Mono for alignment and legibility.
 Maximum 3 font sizes per scene. If you need more hierarchy, use weight and color, not more sizes.
 Line height: 1.2 for headings, 1.6 for body, 1.0 for data/numbers.

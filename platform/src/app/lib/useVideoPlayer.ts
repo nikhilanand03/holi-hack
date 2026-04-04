@@ -117,9 +117,11 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
       : video?.scenes ?? [];
 
   const hasRealVideo = !!video?.realJobId || !!video?.blobUrl;
-  // Use backend stream endpoint (supports range requests for seeking).
-  // Blob URL is fallback only when no realJobId exists.
-  const streamUrl = video?.realJobId ? getStreamUrl(video.realJobId) : video?.blobUrl || null;
+  // Prefer backend /stream (supports Range requests) when available (local dev),
+  // fall back to blobUrl (Azure Blob Storage) for static deploys (Vercel)
+  const backendStreamUrl = video?.realJobId ? getStreamUrl(video.realJobId) : null;
+  const [streamFailed, setStreamFailed] = useState(false);
+  const streamUrl = (!streamFailed && backendStreamUrl) ? backendStreamUrl : video?.blobUrl || backendStreamUrl || null;
 
   const useRealChapters = chapters && chapters.length === activeScenes.length;
   const totalSceneDuration = useRealChapters
@@ -404,5 +406,6 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
     setIsPlaying,
     setRealDuration,
     setExportReminderDismissed,
+    setStreamFailed,
   };
 }
