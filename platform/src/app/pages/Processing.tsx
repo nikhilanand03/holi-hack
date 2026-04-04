@@ -1,12 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import {
-  CheckCircle2,
-  Loader2,
-  ArrowLeft,
-  FileText,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   mockPaperData,
@@ -386,340 +380,465 @@ export default function Processing() {
     return () => clearInterval(interval);
   }, [completedTime]);
 
-  const minutes = Math.floor(elapsedTime / 60);
-  const seconds = elapsedTime % 60;
   const displayPaper = isExample ? knownPaper : paperInfo;
+
+  // Compute the active stage label and overall progress percentage
+  const activeStage = processingStages[currentStage];
+  const totalStages = processingStages.length;
+  let progressPercent = 0;
+  if (completedTime !== null) {
+    progressPercent = 100;
+  } else if (currentStage >= totalStages) {
+    progressPercent = 100;
+  } else {
+    // Base progress from completed stages
+    const baseProgress = (currentStage / totalStages) * 100;
+    // Add partial progress within the rendering stage using scene counts
+    if (activeStage?.id === "rendering" && scenesTotal > 0) {
+      const stageSlice = 100 / totalStages;
+      progressPercent = Math.round(baseProgress + (scenesDone / scenesTotal) * stageSlice);
+    } else {
+      progressPercent = Math.round(baseProgress);
+    }
+  }
+
+  // Build subtitle from paper info
+  let paperSubtitle = "";
+  if (displayPaper) {
+    const authorStr =
+      displayPaper.authors?.length > 2
+        ? `${displayPaper.authors[0]} et al.`
+        : displayPaper.authors?.join(", ") || "";
+    paperSubtitle = authorStr
+      ? `${displayPaper.title} · ${authorStr}`
+      : displayPaper.title;
+  }
+
+  // For scene preview: first 4 scenes, mark rendering state
+  const previewScenes = scenePlan.slice(0, 4);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FAFAF8" }}>
-      {/* Top bar */}
-      <div className="border-b border-[#E5E7EB] bg-white">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
+      {/* ── Nav ── */}
+      <nav
+        className="flex items-center justify-between"
+        style={{ padding: "20px 80px" }}
+      >
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate("/")}
+        >
           <div
-            style={{ fontFamily: "'Instrument Serif', serif" }}
-            className="text-2xl cursor-pointer"
-            onClick={() => navigate("/")}
+            className="flex items-center justify-center text-white font-semibold"
+            style={{
+              width: 32,
+              height: 32,
+              backgroundColor: "#2563EB",
+              borderRadius: 8,
+              fontSize: 16,
+            }}
+          >
+            P
+          </div>
+          <span
+            style={{
+              fontFamily: "'Source Serif 4', serif",
+              fontSize: 22,
+              color: "#1A1A1A",
+            }}
           >
             PaperVideo
-          </div>
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
           <button
-            onClick={() => navigate("/")}
-            className="text-[#6B7280] hover:text-[#1A1A1A] transition-colors flex items-center gap-2"
+            onClick={() => navigate("/library")}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: "#6B7280", fontSize: 14 }}
           >
-            <ArrowLeft size={16} />
-            New Video
+            Your videos
           </button>
+          <a
+            href="https://github.com/nikhilanand03/holi-hack"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: "#6B7280", fontSize: 14 }}
+          >
+            GitHub
+          </a>
+        </div>
+      </nav>
+
+      {/* ── Header ── */}
+      <div className="text-center" style={{ paddingTop: 60 }}>
+        <h1
+          style={{
+            fontFamily: "'Source Serif 4', serif",
+            fontSize: 32,
+            color: "#1A1A1A",
+            fontWeight: 400,
+            margin: 0,
+          }}
+        >
+          {completedTime !== null
+            ? "Your video is ready"
+            : "Turning your paper into a video\u2026"}
+        </h1>
+        {paperSubtitle && (
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14,
+              color: "#9CA3AF",
+              marginTop: 8,
+            }}
+          >
+            {paperSubtitle}
+          </p>
+        )}
+        {!displayPaper && (
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14,
+              color: "#9CA3AF",
+              marginTop: 8,
+            }}
+          >
+            {source === "upload" ? uploadName : uploadUrl || "Processing..."}
+          </p>
+        )}
+      </div>
+
+      {/* ── Backend mode indicator ── */}
+      {useRealBackend && (
+        <div className="text-center" style={{ marginTop: 8 }}>
+          <span
+            className="text-xs px-2 py-1 rounded inline-block"
+            style={{
+              backgroundColor: "rgba(5, 150, 105, 0.1)",
+              color: "#059669",
+            }}
+          >
+            Connected to pipeline
+          </span>
+        </div>
+      )}
+
+      {/* ── Error state ── */}
+      {pipelineError && (
+        <div style={{ padding: "24px 240px 0" }}>
+          <div
+            className="p-4 rounded-xl flex items-start gap-3"
+            style={{ backgroundColor: "rgba(220, 38, 38, 0.05)" }}
+          >
+            <AlertCircle
+              size={20}
+              style={{ color: "#DC2626", flexShrink: 0, marginTop: 2 }}
+            />
+            <div>
+              <p
+                className="text-sm mb-2"
+                style={{ color: "#DC2626", fontWeight: 500 }}
+              >
+                Something went wrong
+              </p>
+              <p className="text-sm" style={{ color: "#6B7280" }}>
+                {pipelineError}
+              </p>
+              <div className="flex gap-2 mt-3">
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/")}
+                  variant="outline"
+                >
+                  Try again
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/")}
+                  variant="outline"
+                >
+                  Try a different paper
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Progress bar ── */}
+      <div style={{ padding: "28px 240px 0" }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+          <span
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14,
+              color: "#1A1A1A",
+              fontWeight: 500,
+            }}
+          >
+            {completedTime !== null
+              ? `Completed in ${completedTime}s`
+              : activeStage?.label || "Starting..."}
+          </span>
+          <span
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14,
+              color: "#2563EB",
+              fontWeight: 600,
+            }}
+          >
+            {progressPercent}%
+          </span>
+        </div>
+        <div
+          style={{
+            height: 6,
+            borderRadius: 9999,
+            backgroundColor: "#E5E7EB",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              borderRadius: 9999,
+              backgroundColor: "#2563EB",
+              width: `${progressPercent}%`,
+              transition: "width 0.5s ease",
+            }}
+          />
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left column — Paper info */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-8 border border-[#E5E7EB]">
-              {displayPaper ? (
-                <>
-                  <h2
-                    className="mb-4"
+      {/* ── Stage list ── */}
+      <div style={{ padding: "32px 240px 0" }}>
+        {processingStages.map((stage, index) => {
+          const isComplete = index < currentStage;
+          const isCurrent = index === currentStage && !pipelineError;
+          const isPending = index > currentStage || !!pipelineError;
+
+          // Right-side info text
+          let rightInfo = "";
+          if (stage.id === "rendering" && isCurrent && scenesTotal > 0) {
+            rightInfo = `${scenesDone}/${scenesTotal} scenes`;
+          } else if (stage.id === "rendering" && isComplete && scenesTotal > 0) {
+            rightInfo = `${scenesTotal}/${scenesTotal} scenes`;
+          }
+
+          return (
+            <div
+              key={stage.id}
+              className="flex items-center"
+              style={{
+                padding: "12px 0",
+                borderBottom: "1px solid #F3F4F6",
+                gap: 14,
+              }}
+            >
+              {/* Status icon */}
+              <div className="flex-shrink-0">
+                {isComplete && (
+                  <div
+                    className="flex items-center justify-center"
                     style={{
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: "24px",
-                      color: "#1A1A1A",
-                      fontWeight: 600,
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      backgroundColor: "#DCFCE7",
                     }}
                   >
-                    {displayPaper.title}
-                  </h2>
-                  <p className="mb-4 text-sm" style={{ color: "#6B7280" }}>
-                    {displayPaper.authors.join(", ")}
-                  </p>
-                  {displayPaper.venue && (
-                    <p className="mb-4 text-sm" style={{ color: "#6B7280" }}>
-                      {displayPaper.venue} · {displayPaper.year}
-                    </p>
-                  )}
-                  <div className="pt-4 border-t border-[#E5E7EB]">
-                    <h3
-                      className="mb-2"
-                      style={{ color: "#1A1A1A", fontWeight: 500 }}
-                    >
-                      Abstract
-                    </h3>
-                    <p
-                      className="text-sm leading-relaxed"
-                      style={{ color: "#6B7280" }}
-                    >
-                      {displayPaper.abstract}
-                    </p>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M2 6L5 9L10 3"
+                        stroke="#16A34A"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-6">
-                    <FileText size={24} style={{ color: "#2563EB" }} />
-                    <div>
-                      <p
-                        style={{
-                          color: "#1A1A1A",
-                          fontWeight: 500,
-                          fontSize: "14px",
-                        }}
-                      >
-                        {source === "upload" ? uploadName : uploadUrl}
-                      </p>
-                      <p className="text-xs" style={{ color: "#6B7280" }}>
-                        {source === "upload" ? "PDF Upload" : "URL"}
-                      </p>
-                    </div>
+                )}
+                {isCurrent && (
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      border: "2px solid #2563EB",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: "#2563EB",
+                      }}
+                    />
                   </div>
-                  <div className="space-y-3 animate-pulse">
-                    <div
-                      className="h-6 rounded"
-                      style={{ backgroundColor: "#F4F4F0", width: "85%" }}
-                    />
-                    <div
-                      className="h-4 rounded"
-                      style={{ backgroundColor: "#F4F4F0", width: "60%" }}
-                    />
-                    <div
-                      className="h-4 rounded"
-                      style={{ backgroundColor: "#F4F4F0", width: "40%" }}
-                    />
-                    <div className="mt-6 pt-4 border-t border-[#E5E7EB]">
-                      <div
-                        className="h-4 rounded mb-2"
-                        style={{ backgroundColor: "#F4F4F0", width: "30%" }}
-                      />
-                      <div
-                        className="h-3 rounded mb-2"
-                        style={{ backgroundColor: "#F4F4F0", width: "100%" }}
-                      />
-                      <div
-                        className="h-3 rounded mb-2"
-                        style={{ backgroundColor: "#F4F4F0", width: "90%" }}
-                      />
-                      <div
-                        className="h-3 rounded"
-                        style={{ backgroundColor: "#F4F4F0", width: "75%" }}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-sm mt-4" style={{ color: "#9CA3AF" }}>
-                    Reading your paper...
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right column — Progress */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl p-8 border border-[#E5E7EB]">
-              <h2
-                className="mb-2"
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "24px",
-                  color: "#1A1A1A",
-                  fontWeight: 600,
-                }}
-              >
-                Generating your video
-              </h2>
-
-              {/* Backend mode indicator */}
-              {useRealBackend && (
-                <p
-                  className="mb-2 text-xs px-2 py-1 rounded inline-block"
-                  style={{
-                    backgroundColor: "rgba(5, 150, 105, 0.1)",
-                    color: "#059669",
-                  }}
-                >
-                  Connected to pipeline
-                </p>
-              )}
-
-              {completedTime !== null ? (
-                <p className="mb-8 text-sm" style={{ color: "#059669", fontWeight: 500 }}>
-                  Completed in {completedTime} seconds
-                </p>
-              ) : (
-                <div className="mb-8">
-                  <p className="text-sm" style={{ color: "#6B7280" }}>
-                    Elapsed: {minutes}:{seconds.toString().padStart(2, "0")}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>
-                    (typically takes 5–6 minutes)
-                  </p>
-                </div>
-              )}
-
-              {/* Error state */}
-              {pipelineError && (
-                <div
-                  className="mb-8 p-4 rounded-xl flex items-start gap-3"
-                  style={{
-                    backgroundColor: "rgba(220, 38, 38, 0.05)",
-                  }}
-                >
-                  <AlertCircle
-                    size={20}
-                    style={{ color: "#DC2626", flexShrink: 0, marginTop: 2 }}
+                )}
+                {isPending && (
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      backgroundColor: "#F9FAFB",
+                      border: "1.5px solid #D1D5DB",
+                    }}
                   />
-                  <div>
-                    <p
-                      className="text-sm mb-2"
-                      style={{ color: "#DC2626", fontWeight: 500 }}
-                    >
-                      Something went wrong
-                    </p>
-                    <p className="text-sm" style={{ color: "#6B7280" }}>
-                      {pipelineError}
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm"
-                        onClick={() => navigate("/")}
-                        variant="outline"
-                      >
-                        Try again
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => navigate("/")}
-                        variant="outline"
-                      >
-                        Try a different paper
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Progress stepper */}
-              <div className="space-y-6 mb-12">
-                {processingStages.map((stage, index) => {
-                  const isComplete = index < currentStage;
-                  const isCurrent = index === currentStage && !pipelineError;
-                  const isPending = index > currentStage || !!pipelineError;
-
-                  return (
-                    <div key={stage.id} className="flex gap-4 items-start">
-                      <div className="flex-shrink-0 mt-1">
-                        {isComplete && (
-                          <CheckCircle2
-                            size={24}
-                            style={{ color: "#059669" }}
-                          />
-                        )}
-                        {isCurrent && (
-                          <Loader2
-                            size={24}
-                            style={{ color: "#2563EB" }}
-                            className="animate-spin"
-                          />
-                        )}
-                        {isPending && (
-                          <div
-                            className="w-6 h-6 rounded-full border-2"
-                            style={{ borderColor: "#E5E7EB" }}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p
-                          style={{
-                            color:
-                              isComplete || isCurrent ? "#1A1A1A" : "#9CA3AF",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {stage.label}
-                        </p>
-                        <p
-                          className="text-sm"
-                          style={{
-                            color:
-                              isComplete || isCurrent ? "#6B7280" : "#9CA3AF",
-                          }}
-                        >
-                          {stage.description}
-                          {stage.id === "rendering" && isCurrent && scenesTotal > 0 && (
-                            <span style={{ color: "#2563EB", fontWeight: 500 }}>
-                              {" "}— {scenesDone}/{scenesTotal} scenes
-                            </span>
-                          )}
-                          {stage.id === "rendering" && isComplete && scenesTotal > 0 && (
-                            <span style={{ color: "#059669", fontWeight: 500 }}>
-                              {" "}— {scenesTotal}/{scenesTotal} scenes
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                )}
               </div>
 
-              {/* Scene plan preview */}
-              {scenePlan.length > 0 && (
-                <div className="pt-8 border-t border-[#E5E7EB]">
-                  <h3
-                    className="mb-4"
-                    style={{ color: "#1A1A1A", fontWeight: 600 }}
-                  >
-                    Scene Plan — {scenePlan.length} scenes
-                  </h3>
-                  <div className="space-y-3">
-                    {scenePlan.map((scene) => {
-                      const info = templateInfo[scene.type];
-                      return (
-                        <div
-                          key={scene.id}
-                          className="flex gap-3 items-start p-3 rounded-lg"
-                          style={{ backgroundColor: "#F4F4F0" }}
-                        >
-                          <div
-                            className="flex-shrink-0 w-8 h-8 rounded flex items-center justify-center text-sm"
-                            style={{
-                              backgroundColor: "#2563EB",
-                              color: "#FFFFFF",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {scene.id}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              style={{ color: "#1A1A1A", fontWeight: 500 }}
-                              className="text-sm"
-                            >
-                              {scene.label}
-                            </p>
-                            <p
-                              style={{ color: "#6B7280" }}
-                              className="text-xs flex items-center gap-1"
-                            >
-                              <span>{info?.icon || "📄"}</span>
-                              <span>
-                                {info?.label ||
-                                  scene.type.replace(/_/g, " ")}{" "}
-                                · {scene.duration}s
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              {/* Label */}
+              <span
+                className="flex-1"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: 14,
+                  color: isPending ? "#D1D5DB" : "#1A1A1A",
+                  fontWeight: isCurrent ? 500 : 400,
+                }}
+              >
+                {stage.label}
+              </span>
+
+              {/* Right info */}
+              {rightInfo && (
+                <span
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 13,
+                    color: isCurrent ? "#2563EB" : "#16A34A",
+                    fontWeight: 500,
+                  }}
+                >
+                  {rightInfo}
+                </span>
               )}
             </div>
+          );
+        })}
+      </div>
+
+      {/* ── Scene preview ── */}
+      {previewScenes.length > 0 && (
+        <div style={{ padding: "40px 240px 60px" }}>
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              color: "#9CA3AF",
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              marginBottom: 16,
+              fontWeight: 500,
+            }}
+          >
+            Scene Preview
+          </p>
+          <div className="flex" style={{ gap: 12 }}>
+            {previewScenes.map((scene, i) => {
+              // A scene is "done" if we're past the rendering stage, or if during rendering scenesDone > i
+              const sceneComplete =
+                currentStage > 2 || (currentStage === 2 && scenesDone > i);
+              const sceneRendering =
+                currentStage === 2 && scenesDone === i && !pipelineError;
+
+              if (sceneComplete) {
+                // Completed scene: dark card
+                const info = templateInfo[scene.type];
+                return (
+                  <div
+                    key={scene.id}
+                    className="flex-1 flex flex-col justify-end"
+                    style={{
+                      height: 140,
+                      borderRadius: 10,
+                      backgroundColor: "#1A1A1A",
+                      padding: 14,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        fontFamily: "'Inter', sans-serif",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {scene.label}
+                    </p>
+                    <p
+                      style={{
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: 11,
+                        fontFamily: "'Inter', sans-serif",
+                        marginTop: 4,
+                      }}
+                    >
+                      {info?.label || scene.type.replace(/_/g, " ")} · {scene.duration}s
+                    </p>
+                  </div>
+                );
+              }
+
+              if (sceneRendering) {
+                // Currently rendering: dashed border
+                return (
+                  <div
+                    key={scene.id}
+                    className="flex-1 flex flex-col items-center justify-center"
+                    style={{
+                      height: 140,
+                      borderRadius: 10,
+                      backgroundColor: "#F3F4F6",
+                      border: "2px dashed #D1D5DB",
+                    }}
+                  >
+                    <Loader2
+                      size={20}
+                      style={{ color: "#9CA3AF" }}
+                      className="animate-spin"
+                    />
+                    <p
+                      style={{
+                        color: "#9CA3AF",
+                        fontSize: 12,
+                        fontFamily: "'Inter', sans-serif",
+                        marginTop: 8,
+                      }}
+                    >
+                      Rendering...
+                    </p>
+                  </div>
+                );
+              }
+
+              // Pending scene: light dashed
+              return (
+                <div
+                  key={scene.id}
+                  className="flex-1"
+                  style={{
+                    height: 140,
+                    borderRadius: 10,
+                    backgroundColor: "#F9FAFB",
+                    border: "1.5px dashed #E5E7EB",
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

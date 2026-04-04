@@ -25,3 +25,4 @@ python -m pytest tests/ -v && cd platform && npm test       # all tests
 - Don't modify templates without checking `pipeline/template_registry.py`
 - Remotion rendering needs a VM (Container Apps OOMs) — use `mars2` in Azure
 - Pre-push hook runs pytest + vitest — all 57 tests must pass
+
