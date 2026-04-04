@@ -207,7 +207,7 @@ def _render_remotion_scene(
         cwd=str(REMOTION_DIR),
         capture_output=True,
         text=True,
-        timeout=300,
+        timeout=600,
     )
 
     if result.returncode != 0:
@@ -244,7 +244,7 @@ def _warmup_remotion() -> None:
             cwd=str(REMOTION_DIR),
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=300,
         )
         bundle_marker.parent.mkdir(parents=True, exist_ok=True)
         bundle_marker.touch()
