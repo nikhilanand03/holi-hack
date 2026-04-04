@@ -53,7 +53,6 @@ export default function Viewer() {
                   ref={p.videoElRef}
                   src={p.streamUrl}
                   preload="auto"
-                  crossOrigin="anonymous"
                   className="absolute inset-0 w-full h-full object-contain cursor-pointer z-0"
                   onClick={p.handlePlayPause}
                   onTimeUpdate={() => { if (p.videoElRef.current) p.setCurrentTime(p.videoElRef.current.currentTime); }}
