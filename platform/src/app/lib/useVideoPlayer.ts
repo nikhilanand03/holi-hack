@@ -117,7 +117,9 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
       : video?.scenes ?? [];
 
   const hasRealVideo = !!video?.realJobId || !!video?.blobUrl;
-  const streamUrl = video?.blobUrl || (video?.realJobId ? getStreamUrl(video.realJobId) : null);
+  // Always prefer backend /stream endpoint (supports Range requests for seeking)
+  // over direct blobUrl (Azure Blob Storage CORS blocks Range requests)
+  const streamUrl = video?.realJobId ? getStreamUrl(video.realJobId) : video?.blobUrl || null;
 
   const useRealChapters = chapters && chapters.length === activeScenes.length;
   const totalSceneDuration = useRealChapters
