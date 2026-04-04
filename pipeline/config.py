@@ -45,8 +45,8 @@ class Config(BaseSettings):
 
     # Rendering
     render_mode: str = "remotion"
-    render_concurrency: int = 4
-    assembly_concurrency: int = 4
+    render_concurrency: int = 2
+    assembly_concurrency: int = 2
 
     # Azure Blob Storage (optional)
     azure_storage_connection_string: str = ""
