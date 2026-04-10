@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Play } from "lucide-react";
 import { getLibrary, seedSampleItems } from "../lib/data";
+import { getLibraryFromSupabase } from "../lib/supabaseVideos";
 import { useAuth } from "../lib/useAuth";
 import UserMenu from "../components/UserMenu";
 
@@ -22,9 +23,35 @@ export default function Library() {
   const navigate = useNavigate();
   const { user, signInWithGoogle, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [library, setLibrary] = useState<any[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(true);
 
-  seedSampleItems();
-  const library = getLibrary();
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLibrary() {
+      setLibraryLoading(true);
+      seedSampleItems();
+
+      if (user) {
+        try {
+          const cloudVideos = await getLibraryFromSupabase(user.id);
+          // Merge: cloud videos + local-only samples not already in cloud
+          const localLib = getLibrary();
+          const sampleVideos = localLib.filter((v: any) => v.isSample);
+          const cloudIds = new Set(cloudVideos.map((v: any) => v.id));
+          const extraSamples = sampleVideos.filter((v: any) => !cloudIds.has(v.id));
+          if (!cancelled) setLibrary([...cloudVideos, ...extraSamples]);
+        } catch {
+          if (!cancelled) setLibrary(getLibrary());
+        }
+      } else {
+        if (!cancelled) setLibrary(getLibrary());
+      }
+      if (!cancelled) setLibraryLoading(false);
+    }
+    loadLibrary();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Filter and sort by most recent
   const filteredVideos = library
@@ -156,7 +183,7 @@ export default function Library() {
               margin: "6px 0 0 0",
             }}
           >
-            Saved locally in this browser
+            {user ? "Synced across your devices" : "Saved locally in this browser"}
           </p>
         </div>
 

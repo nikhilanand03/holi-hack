@@ -18,10 +18,13 @@ import {
   saveVideoToLibrary,
 } from "./data";
 import { getStreamUrl, getDownloadUrl, getChapters, getJobData } from "./api";
+import { useAuth } from "./useAuth";
+import { getVideoFromSupabase, getVideoByArxivIdFromSupabase } from "./supabaseVideos";
 
 export function useVideoPlayer(videoId?: string, arxivId?: string) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoElRef = useRef<HTMLVideoElement>(null);
+  const { user } = useAuth();
 
   // ── State ──────────────────────────────────────────────────────────────
   const [isPlaying, setIsPlaying] = useState(false);
@@ -43,11 +46,13 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [chapters, setChapters] = useState<{ start: number; duration: number }[] | null>(null);
   const [realScenes, setRealScenes] = useState<any[] | null>(null);
+  const [cloudVideo, setCloudVideo] = useState<any>(null);
+  const [cloudLoading, setCloudLoading] = useState(false);
 
   // ── Video lookup ───────────────────────────────────────────────────────
   seedSampleItems();
-  let video = arxivId ? getVideoByArxivId(arxivId) : getVideoById(videoId!);
-  if (!video && arxivId) {
+  let localVideo = arxivId ? getVideoByArxivId(arxivId) : getVideoById(videoId!);
+  if (!localVideo && arxivId) {
     const sample = examplePapers.find((p) => p.arxivId === arxivId);
     if (sample) {
       const data = mockPaperData[sample.id];
@@ -64,10 +69,32 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
           isSample: true,
         };
         saveVideoToLibrary(entry.id, entry);
-        video = entry;
+        localVideo = entry;
       }
     }
   }
+
+  // Cross-device fallback: if not found locally, try Supabase
+  useEffect(() => {
+    if (localVideo || cloudVideo || !user) return;
+    setCloudLoading(true);
+    (async () => {
+      try {
+        const found = arxivId
+          ? await getVideoByArxivIdFromSupabase(user.id, arxivId)
+          : videoId
+            ? await getVideoFromSupabase(user.id, videoId)
+            : null;
+        if (found) setCloudVideo(found);
+      } catch {
+        // Supabase unreachable — stay with local-only
+      } finally {
+        setCloudLoading(false);
+      }
+    })();
+  }, [localVideo, cloudVideo, user, videoId, arxivId]);
+
+  const video = localVideo || cloudVideo;
   const resolvedVideoId = video?.id || videoId;
 
   // ── Data loading effects ───────────────────────────────────────────────
@@ -407,5 +434,6 @@ export function useVideoPlayer(videoId?: string, arxivId?: string) {
     setIsPlaying,
     setRealDuration,
     setExportReminderDismissed,
+    cloudLoading,
   };
 }

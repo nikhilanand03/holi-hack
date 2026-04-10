@@ -3,9 +3,11 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
+  extractArxivId,
   mockPaperData,
   processingStages,
   saveVideoToLibrary,
+  saveVideoToSupabase,
   templateInfo,
 } from "../lib/data";
 import { getJobStatus, getJobData, statusToStageIndex } from "../lib/api";
@@ -253,6 +255,7 @@ export default function Processing() {
         // Done → fetch full data and navigate to viewer
         if (status.status === "done") {
           clearInterval(pollingRef.current);
+          let videoMeta: any = null;
           try {
             const data = await getJobData(jobId!);
             const paper = data.paper || {};
@@ -267,7 +270,7 @@ export default function Processing() {
               data: s.data,
             }));
             const totalDuration = scenes.reduce((sum: number, s: any) => sum + s.duration, 0);
-            saveVideoToLibrary(jobId!, {
+            videoMeta = {
               title: paper.title || uploadName.replace(/\.pdf$/i, ""),
               authors: paper.authors || [],
               venue: paper.venue || "",
@@ -284,10 +287,12 @@ export default function Processing() {
               scenes,
               duration: totalDuration || 120,
               realJobId: jobId,
-            });
+              blobUrl: status.blob_url || undefined,
+            };
+            saveVideoToLibrary(jobId!, videoMeta);
           } catch {
             // Minimal fallback — only use filename, no fake authors/sections
-            saveVideoToLibrary(jobId!, {
+            videoMeta = {
               title: uploadName.replace(/\.pdf$/i, "") || "Uploaded Paper",
               authors: [],
               venue: "",
@@ -295,7 +300,21 @@ export default function Processing() {
               scenes: scenePlan,
               duration: 120,
               realJobId: jobId,
-            });
+              blobUrl: status.blob_url || undefined,
+            };
+            saveVideoToLibrary(jobId!, videoMeta);
+          }
+          // Persist to Supabase for cross-device access
+          if (user && videoMeta) {
+            try {
+              await saveVideoToSupabase(user.id, jobId!, {
+                ...videoMeta,
+                arxiv_id: extractArxivId(uploadUrl),
+                blob_url: status.blob_url || null,
+              });
+            } catch (e) {
+              console.warn("Supabase save failed (localStorage fallback used):", e);
+            }
           }
           setCompletedTime(elapsedTimeRef.current);
           removeJob(jobId!);

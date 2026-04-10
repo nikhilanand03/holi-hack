@@ -11,6 +11,17 @@ vi.mock('./api', () => ({
   getJobData: () => Promise.resolve({}),
 }));
 
+// Mock auth — default to no user (guest mode)
+vi.mock('./useAuth', () => ({
+  useAuth: () => ({ user: null, loading: false, signInWithGoogle: vi.fn(), signOut: vi.fn() }),
+}));
+
+// Mock Supabase video lookups
+vi.mock('./supabaseVideos', () => ({
+  getVideoFromSupabase: () => Promise.resolve(null),
+  getVideoByArxivIdFromSupabase: () => Promise.resolve(null),
+}));
+
 const testVideo = {
   title: 'Test Paper: A Study',
   authors: ['Alice Smith', 'Bob Jones'],
@@ -217,6 +228,19 @@ describe('useVideoPlayer', () => {
         result.current.setHoverTime(null);
       });
       expect(result.current.hoverTime).toBeNull();
+    });
+  });
+
+  describe('cloud loading', () => {
+    it('exposes cloudLoading state (false when video found locally)', () => {
+      const id = setupVideo();
+      const { result } = renderHook(() => useVideoPlayer(id));
+      expect(result.current.cloudLoading).toBe(false);
+    });
+
+    it('exposes cloudLoading state (false for guest with missing video)', () => {
+      const { result } = renderHook(() => useVideoPlayer('nonexistent'));
+      expect(result.current.cloudLoading).toBe(false);
     });
   });
 });
