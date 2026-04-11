@@ -526,17 +526,8 @@ export default function Processing() {
     return `~${secs}s remaining`;
   })();
 
-  // Build subtitle from paper info
-  let paperSubtitle = "";
-  if (displayPaper) {
-    const authorStr =
-      displayPaper.authors?.length > 2
-        ? `${displayPaper.authors[0]} et al.`
-        : displayPaper.authors?.join(", ") || "";
-    paperSubtitle = authorStr
-      ? `${displayPaper.title} · ${authorStr}`
-      : displayPaper.title;
-  }
+  // Build subtitle from paper info (title only, no authors)
+  const paperSubtitle = displayPaper?.title || "";
 
   // For scene preview: first 4 scenes, mark rendering state
   // Full scene plan shown below progress stages
@@ -908,16 +899,28 @@ export default function Processing() {
       {/* ── Insight ticker ── */}
       {completedTime === null && !pipelineError && (() => {
         const insights = [
+          // From the blog
           "\"What if the paper was a video? A short, digestible video that walks you through the key ideas?\"",
           "\"Instead of asking the LLM to freestyle a script, we gave it a rigid JSON template and asked it to fill in specific fields.\"",
           "\"It takes a seemingly chaotic probabilistic system and imposes clean, mathematical structure on it — without sacrificing speed.\"",
           "\"The difference between producing coherent videos and producing garbled nonsense? Constrained decoding.\"",
+          "\"The LLM was no longer freestyle-generating a script. At every token step, it was being constrained to produce valid output.\"",
+          "\"Reading dense academic text takes a specific kind of mental energy that I don't always have at 10pm.\"",
+          "\"Every field was always present, every value was the right type — no extra commentary that would break our parser.\"",
+          "\"We build a Finite State Machine of the grammar. The allowed tokens change depending on the current state of the output.\"",
+          "\"The precomputation happens once, and every subsequent step is instant — a massive improvement over the naive approach.\"",
+          // About the pipeline
           `Your video will have ${scenesTotal || scenePlan.length || "~15"} scenes, each with its own animation and narration.`,
           "Each scene is rendered using Remotion, a React-based video framework that produces cinema-quality animations.",
           "The narration is synthesized using Azure Neural Voice, producing natural-sounding speech for each scene.",
           "Every research paper is analyzed section-by-section to extract figures, tables, and key findings.",
           "PaperVideo uses structured outputs with constrained decoding to guarantee valid scene plans every time.",
           "Tables and figures from the paper are automatically extracted and included as dedicated visual scenes.",
+          "The video script is planned by GPT-4o, which sees the full paper and crafts a coherent narrative arc.",
+          "Each template — from bullet lists to data tables to charts — is a hand-crafted React animation component.",
+          "Scene animations are rendered in parallel for speed, then assembled with narration into the final video.",
+          "PaperVideo was built in a weekend hackathon and has been iteratively improved ever since.",
+          "The entire pipeline runs on Azure — from PDF extraction to video assembly — in under 5 minutes.",
         ];
         const currentInsight = insights[Math.floor(elapsedTime / 8) % insights.length];
         return (
@@ -944,6 +947,23 @@ export default function Processing() {
           </div>
         );
       })()}
+
+      {/* ── Blog link ── */}
+      {completedTime === null && !pipelineError && (
+        <div style={{ padding: "24px 240px 0", textAlign: "center" }}>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#9CA3AF" }}>
+            Bored?{" "}
+            <a
+              href="https://medium.com/@nikhilanand03"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#2563EB", textDecoration: "none" }}
+            >
+              Read about how we built this →
+            </a>
+          </span>
+        </div>
+      )}
 
       {/* ── Scene plan ── */}
       {scenePlan.length > 0 && !isQueued && (

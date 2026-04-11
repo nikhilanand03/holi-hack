@@ -3,11 +3,12 @@
 set -e
 
 REGISTRY="${REGISTRY:-banimcr}"
-IMAGE="${IMAGE:-banim-api:latest}"
 RESOURCE_GROUP="${RESOURCE_GROUP:-banim-rg}"
 APP_NAME="${APP_NAME:-banim-api}"
+TAG="build-$(date +%s)"
+IMAGE="banim-api:$TAG"
 
-echo "==> Building image in ACR..."
+echo "==> Building image in ACR (tag: $TAG)..."
 az acr build \
   --registry "$REGISTRY" \
   --image "$IMAGE" \

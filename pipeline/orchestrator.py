@@ -287,16 +287,18 @@ class Pipeline:
             container = os.environ.get("AZURE_STORAGE_CONTAINER", "videos")
             if conn_str:
                 try:
-                    from azure.storage.blob import BlobServiceClient
+                    from azure.storage.blob import BlobServiceClient, ContentSettings
                     blob_service = BlobServiceClient.from_connection_string(conn_str)
                     blob_name = f"{job_id}/{final.name}"
                     blob_client = blob_service.get_blob_client(container=container, blob=blob_name)
                     with open(final, "rb") as f:
-                        blob_client.upload_blob(f, overwrite=True, content_settings={
-                            "content_type": "video/mp4"
-                        })
+                        blob_client.upload_blob(
+                            f, overwrite=True,
+                            content_settings=ContentSettings(content_type="video/mp4"),
+                        )
                     job["blob_url"] = blob_client.url
                 except Exception as upload_err:
+                    logger.error("Blob upload failed for %s: %s", job_id, upload_err)
                     job["blob_upload_error"] = str(upload_err)
 
             _notify(Status.DONE)
