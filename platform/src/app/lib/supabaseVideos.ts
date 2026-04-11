@@ -108,9 +108,9 @@ export async function syncLocalLibraryToSupabase(
   userId: string,
   localLibrary: any[]
 ): Promise<number> {
-  // Only sync real videos (not samples) that have a realJobId
+  // Only sync real videos that have a blobUrl (playable cross-device)
   const candidates = localLibrary.filter(
-    (v: any) => v.realJobId && !v.isSample
+    (v: any) => v.realJobId && v.blobUrl && !v.isSample
   );
   if (candidates.length === 0) return 0;
 
