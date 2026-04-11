@@ -229,6 +229,7 @@ class Pipeline:
             # Extract
             _notify(Status.EXTRACTING)
             paper = extract_pdf(job["pdf_path"], output_dir=job_dir)
+            _check_cancelled()
             (job_dir / "extraction.json").write_text(json.dumps(paper, indent=2, default=str))
             job["paper"] = paper
 
@@ -237,8 +238,10 @@ class Pipeline:
                 return
 
             # Plan
+            _check_cancelled()
             _notify(Status.PLANNING)
             plan = plan_scenes(paper, output_dir=job_dir, mode=plan_mode)
+            _check_cancelled()
             job["scenes_total"] = len(plan.scenes)
             plan_dict = plan.model_dump()
             (job_dir / "plan.json").write_text(json.dumps(plan_dict, indent=2, default=str))
