@@ -799,6 +799,31 @@ export default function Processing() {
           </span>
         </div>
       )}
+      {useRealBackend && completedTime === null && !pipelineError && !user && (
+        <div className="text-center" style={{ marginTop: 8 }}>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#9CA3AF" }}>
+            Want to leave and come back later?{" "}
+          </span>
+          <button
+            onClick={signInWithGoogle}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+              fontSize: 12,
+              color: "#2563EB",
+              padding: 0,
+              textDecoration: "underline",
+            }}
+          >
+            Sign in
+          </button>
+          <span style={{ fontFamily: "Inter, sans-serif", fontSize: 12, color: "#9CA3AF" }}>
+            {" "}to save your progress.
+          </span>
+        </div>
+      )}
 
       {/* ── Error state ── */}
       {pipelineError && (
