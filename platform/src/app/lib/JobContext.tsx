@@ -37,24 +37,8 @@ export function JobProvider({ children }: { children: React.ReactNode }) {
   const pollRef = useRef<ReturnType<typeof setInterval>>();
   const initializedRef = useRef(false);
 
-  // On mount, fetch active jobs from backend to recover after refresh
-  useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-
-    getActiveJobs().then((backendJobs) => {
-      if (backendJobs.length > 0) {
-        const recovered = backendJobs.map((j) => ({
-          jobId: j.job_id,
-          paperName: paperNamesRef.current[j.job_id] || "Paper",
-          status: j.status,
-          scenesTotal: j.scenes_total,
-          scenesDone: j.scenes_done,
-        }));
-        setActiveJobs(recovered);
-      }
-    });
-  }, []);
+  // Jobs are only tracked via addJob() — no global recovery from /active-jobs
+  // This ensures users only see their own jobs, not other users'
 
   const addJob = useCallback((jobId: string, paperName: string) => {
     paperNamesRef.current[jobId] = paperName;

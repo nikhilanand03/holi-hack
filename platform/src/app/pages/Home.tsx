@@ -54,7 +54,7 @@ export default function Home() {
     if (file) {
       setIsUploading(true);
       try {
-        const jobId = await uploadPdf(file, mode);
+        const jobId = await uploadPdf(file, mode, user?.email || undefined);
         addJob(jobId, file.name.replace(/\.pdf$/i, ""));
         navigate(`/video/${jobId}?source=upload&name=${encodeURIComponent(file.name)}`);
       } catch (err: any) {

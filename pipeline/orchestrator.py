@@ -17,6 +17,7 @@ from typing import Any
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", "8"))
 _pipeline_semaphore = threading.Semaphore(1)  # only 1 job runs at a time
 _queue_count = 0
+_queue_order: list[str] = []  # ordered list of job IDs in the queue
 _queue_lock = threading.Lock()
 
 logger = logging.getLogger(__name__)
@@ -308,6 +309,8 @@ class Pipeline:
             _pipeline_semaphore.release()
             with _queue_lock:
                 _queue_count -= 1
+                if job_id in _queue_order:
+                    _queue_order.remove(job_id)
             logger.info("[%s] Pipeline slot released (queue: %d/%d)", job_id, _queue_count, MAX_QUEUE_SIZE)
             pipeline_root.removeHandler(job_log_handler)
             job_log_handler.close()

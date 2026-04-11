@@ -64,7 +64,7 @@ app.add_middleware(
 
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile, mode: str = "brief"):
+async def upload_pdf(file: UploadFile, mode: str = "brief", user_email: str = ""):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Please upload a PDF file.")
     if mode not in ("brief", "detailed"):
@@ -89,6 +89,15 @@ async def upload_pdf(file: UploadFile, mode: str = "brief"):
     job_id = create_job(tmp_path)
     tmp_path.unlink(missing_ok=True)
 
+    # Tag job with user email
+    job = get_job(job_id)
+    if job:
+        job["user_email"] = user_email
+
+    # Track queue order
+    with _orch._queue_lock:
+        _orch._queue_order.append(job_id)
+
     # Run pipeline in background thread (waits for semaphore internally)
     t = threading.Thread(target=run_pipeline, args=(job_id,), kwargs={"plan_mode": mode}, daemon=True)
     t.start()
@@ -104,19 +113,23 @@ async def cancel_pipeline(job_id: str):
 
 
 @app.get("/queue-status")
-async def queue_status():
-    """Return current queue info."""
+async def queue_status(job_id: str = ""):
+    """Return current queue info, optionally with position for a specific job."""
     with _orch._queue_lock:
+        position = None
+        if job_id and job_id in _orch._queue_order:
+            position = _orch._queue_order.index(job_id)  # 0-based position
         return {
             "queue_size": _orch._queue_count,
             "max_queue_size": _orch.MAX_QUEUE_SIZE,
             "available": _orch._queue_count < _orch.MAX_QUEUE_SIZE,
+            "position": position,
         }
 
 
 @app.get("/active-jobs")
-async def active_jobs():
-    """Return all in-progress jobs so the frontend can recover after refresh."""
+async def active_jobs(user_email: str = ""):
+    """Return in-progress jobs, optionally filtered by user email."""
     from pipeline import _jobs, Status
     active = []
     for job_id, job in _jobs.items():
@@ -124,6 +137,8 @@ async def active_jobs():
         if hasattr(status, "value"):
             status = status.value
         if status not in ("done", "failed"):
+            if user_email and job.get("user_email") != user_email:
+                continue
             active.append({
                 "job_id": job_id,
                 "status": status,
@@ -220,17 +235,33 @@ async def job_data(job_id: str):
 
 
 def _find_video(job_id: str) -> Path:
-    """Find the final video file for a job (in-memory or on disk)."""
+    """Find the final video file for a job. Downloads from blob if not on disk."""
     job = get_job(job_id)
     if job and job.get("final_path"):
         p = Path(job["final_path"])
         if p.exists():
             return p
-    # Fallback: look on disk
+    # Check disk
     job_dir = OUTPUT_ROOT / job_id
     final = job_dir / "final.mp4"
     if final.exists():
         return final
+    # Fallback: download from blob storage
+    conn_str = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+    container = os.environ.get("AZURE_STORAGE_CONTAINER", "videos")
+    if conn_str:
+        try:
+            from azure.storage.blob import BlobServiceClient
+            blob_service = BlobServiceClient.from_connection_string(conn_str)
+            blob_name = f"{job_id}/final.mp4"
+            blob_client = blob_service.get_blob_client(container=container, blob=blob_name)
+            job_dir.mkdir(parents=True, exist_ok=True)
+            with open(final, "wb") as f:
+                f.write(blob_client.download_blob().readall())
+            logging.getLogger(__name__).info("Downloaded %s from blob (%d bytes)", job_id, final.stat().st_size)
+            return final
+        except Exception:
+            pass
     raise HTTPException(404, "Video not found.")
 
 

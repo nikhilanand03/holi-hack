@@ -46,11 +46,14 @@ export interface JobData {
 }
 
 /** Upload a PDF and start the pipeline. Returns the job ID. */
-export async function uploadPdf(file: File, mode: "brief" | "detailed" = "brief"): Promise<string> {
+export async function uploadPdf(file: File, mode: "brief" | "detailed" = "brief", userEmail?: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${API_BASE}/upload?mode=${mode}`, {
+  const params = new URLSearchParams({ mode });
+  if (userEmail) params.set("user_email", userEmail);
+
+  const res = await fetch(`${API_BASE}/upload?${params}`, {
     method: "POST",
     body: formData,
   });
@@ -75,14 +78,15 @@ export async function getActiveJobs(): Promise<{ job_id: string; status: JobStat
   }
 }
 
-/** Fetch current queue status. */
-export async function getQueueStatus(): Promise<{ queue_size: number; max_queue_size: number; available: boolean }> {
+/** Fetch current queue status, optionally with position for a specific job. */
+export async function getQueueStatus(jobId?: string): Promise<{ queue_size: number; max_queue_size: number; available: boolean; position: number | null }> {
   try {
-    const res = await fetch(`${API_BASE}/queue-status`);
-    if (!res.ok) return { queue_size: 0, max_queue_size: 8, available: true };
+    const url = jobId ? `${API_BASE}/queue-status?job_id=${jobId}` : `${API_BASE}/queue-status`;
+    const res = await fetch(url);
+    if (!res.ok) return { queue_size: 0, max_queue_size: 8, available: true, position: null };
     return res.json();
   } catch {
-    return { queue_size: 0, max_queue_size: 8, available: true };
+    return { queue_size: 0, max_queue_size: 8, available: true, position: null };
   }
 }
 

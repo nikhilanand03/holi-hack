@@ -245,18 +245,17 @@ export default function Processing() {
         pollFailCountRef.current = 0;
         const stageIdx = statusToStageIndex(status.status);
 
-        console.log(
-          `[Pipeline ${jobId}] %c${status.status}%c | stage ${stageIdx}/5 | scenes ${status.scenes_done}/${status.scenes_total}`,
-          "color: #2563EB; font-weight: bold",
-          "color: inherit"
-        );
+        // Log only on stage changes to reduce console spam
+        if (stageIdx !== currentStage) {
+          console.log(`[Pipeline ${jobId}] ${status.status} | stage ${stageIdx}/5 | scenes ${status.scenes_done}/${status.scenes_total}`);
+        }
 
         const queued = status.status === "queued";
         setIsQueued(queued);
         if (queued) {
           try {
-            const qs = await getQueueStatus();
-            setQueueAhead(Math.max(0, qs.queue_size - 1)); // exclude this job
+            const qs = await getQueueStatus(jobId!);
+            setQueueAhead(qs.position !== null ? qs.position : Math.max(0, qs.queue_size - 1));
           } catch { /* ignore */ }
         }
         setCurrentStage(stageIdx);
@@ -934,8 +933,8 @@ export default function Processing() {
             lineHeight: 1.6,
           }}>
             {queueAhead > 0
-              ? `${queueAhead} video${queueAhead > 1 ? "s are" : " is"} being generated ahead of yours. Your video will start automatically once it's your turn.`
-              : "Another video is currently being generated. Yours will start automatically once it's your turn."}
+              ? `${queueAhead} video${queueAhead > 1 ? "s" : ""} ahead of yours. Your video will start automatically once it's your turn.`
+              : "Your video will start shortly."}
           </p>
         </div>
       )}
