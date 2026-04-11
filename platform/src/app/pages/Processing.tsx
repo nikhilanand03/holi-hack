@@ -399,7 +399,10 @@ export default function Processing() {
           if (user) {
             setTimeout(() => navigate(`/v/${jobId}`), 2000);
           } else {
-            setShowSignIn(true);
+            // Double-check — user might load shortly after
+            setTimeout(() => {
+              setShowSignIn(true);
+            }, 500);
           }
         }
 
@@ -698,7 +701,7 @@ export default function Processing() {
       </div>
 
       {/* ── Sign in popup ── */}
-      {showSignIn && (
+      {showSignIn && !user && (
         <div
           style={{
             position: "fixed",
