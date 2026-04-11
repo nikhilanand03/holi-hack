@@ -795,7 +795,7 @@ export default function Processing() {
               color: "#9CA3AF",
             }}
           >
-            You can leave this page — we'll save your video to your library when it's done.
+            You can leave this page. We'll save your video to your library when it's done.
           </span>
         </div>
       )}

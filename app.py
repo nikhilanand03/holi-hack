@@ -72,7 +72,7 @@ async def upload_pdf(file: UploadFile, mode: str = "brief", user_email: str = ""
 
     # Check queue capacity
     with _orch._queue_lock:
-        if _orch._queue_count >= _orch.MAX_QUEUE_SIZE:
+        if len(_orch._queue_order) >= _orch.MAX_QUEUE_SIZE:
             raise HTTPException(
                 503,
                 "We're at capacity. Please try again in a few minutes."
@@ -116,13 +116,14 @@ async def cancel_pipeline(job_id: str):
 async def queue_status(job_id: str = ""):
     """Return current queue info, optionally with position for a specific job."""
     with _orch._queue_lock:
+        queue_size = len(_orch._queue_order)
         position = None
         if job_id and job_id in _orch._queue_order:
-            position = _orch._queue_order.index(job_id)  # 0-based position
+            position = _orch._queue_order.index(job_id)
         return {
-            "queue_size": _orch._queue_count,
+            "queue_size": queue_size,
             "max_queue_size": _orch.MAX_QUEUE_SIZE,
-            "available": _orch._queue_count < _orch.MAX_QUEUE_SIZE,
+            "available": queue_size < _orch.MAX_QUEUE_SIZE,
             "position": position,
         }
 

@@ -140,6 +140,10 @@ class JobManager:
         job["error"] = "Cancelled by user"
         job_dir = Path(job["job_dir"])
         _persist_status(job, job_dir)
+        # Clean up queue tracking (the pipeline thread will handle semaphore release)
+        with _queue_lock:
+            if job_id in _queue_order:
+                _queue_order.remove(job_id)
         return True
 
 
@@ -184,9 +188,19 @@ class Pipeline:
         job = self.job_manager._jobs[job_id]
         job_dir = Path(job["job_dir"])
 
-        # Wait for our turn in the queue
+        # Wait for our turn in the queue, checking for cancellation
         logger.info("[%s] Waiting for pipeline slot... (queue: %d/%d)", job_id, _queue_count, MAX_QUEUE_SIZE)
-        _pipeline_semaphore.acquire()
+        while not _pipeline_semaphore.acquire(timeout=2):
+            if job.get("cancelled"):
+                logger.info("[%s] Cancelled while queued", job_id)
+                with _queue_lock:
+                    _queue_count -= 1
+                return
+        if job.get("cancelled"):
+            _pipeline_semaphore.release()
+            with _queue_lock:
+                _queue_count -= 1
+            return
         logger.info("[%s] Pipeline slot acquired, starting", job_id)
 
         # Per-job log file so every run is inspectable after the fact
