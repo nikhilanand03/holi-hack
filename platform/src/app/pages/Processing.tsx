@@ -259,7 +259,7 @@ export default function Processing() {
         if (queued) {
           try {
             const qs = await getQueueStatus(jobId!);
-            setQueueAhead(qs.position !== null ? qs.position : Math.max(0, qs.queue_size - 1));
+            setQueueAhead(Math.max(0, qs.queue_size - 1));
           } catch { /* ignore */ }
         }
         setCurrentStage(stageIdx);
