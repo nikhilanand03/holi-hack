@@ -163,8 +163,10 @@ export default function JobBanner() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                cancelJob(job.jobId);
-                removeJob(job.jobId);
+                if (window.confirm("Stop generating this video? Progress will be lost.")) {
+                  cancelJob(job.jobId);
+                  removeJob(job.jobId);
+                }
               }}
               title="Stop"
               style={{

@@ -173,6 +173,8 @@ export default function Processing() {
   const [scenesDone, setScenesDone] = useState(0);
   const [scenesTotal, setScenesTotal] = useState(0);
   const pollingRef = useRef<ReturnType<typeof setInterval>>();
+  const stageStartTimeRef = useRef<number>(Date.now());
+  const lastStageRef = useRef<number>(-1);
   const elapsedTimeRef = useRef(0);
   const pollFailCountRef = useRef(0);
   const paperInfoFetchedRef = useRef(false);
@@ -450,6 +452,61 @@ export default function Processing() {
     }
   }
 
+  // Track when each stage starts for countdown
+  if (currentStage !== lastStageRef.current) {
+    lastStageRef.current = currentStage;
+    stageStartTimeRef.current = Date.now();
+  }
+
+  // Estimated time remaining — counts down within each stage
+  const estimatedTimeRemaining = (() => {
+    if (completedTime !== null || pipelineError) return null;
+
+    const STAGE_ESTIMATES: Record<number, number> = {
+      0: 30,   // Extracting
+      1: 40,   // Planning
+      // 2 is dynamic (rendering)
+      3: 5,    // TTS
+      4: 20,   // Assembling
+    };
+
+    const totalScenes = scenesTotal || scenePlan.length || 12;
+    const RENDER_PER_SCENE = 8;
+
+    // Time elapsed in current stage
+    const stageElapsed = Math.floor((Date.now() - stageStartTimeRef.current) / 1000);
+
+    // Current stage estimate
+    let currentStageEstimate: number;
+    if (currentStage === 2) {
+      const scenesLeft = Math.max(0, totalScenes - scenesDone);
+      currentStageEstimate = scenesLeft * RENDER_PER_SCENE;
+    } else {
+      currentStageEstimate = STAGE_ESTIMATES[currentStage] ?? 10;
+    }
+
+    // Time left in current stage (don't go below 0)
+    const currentStageRemaining = Math.max(0, currentStageEstimate - stageElapsed);
+
+    // Time for future stages
+    let futureTime = 0;
+    for (let s = currentStage + 1; s <= 4; s++) {
+      if (s === 2) {
+        futureTime += totalScenes * RENDER_PER_SCENE;
+      } else {
+        futureTime += STAGE_ESTIMATES[s] ?? 10;
+      }
+    }
+
+    const remaining = currentStageRemaining + futureTime;
+    if (remaining <= 0) return null;
+
+    const mins = Math.floor(remaining / 60);
+    const secs = remaining % 60;
+    if (mins > 0) return `~${mins}m ${secs}s remaining`;
+    return `~${secs}s remaining`;
+  })();
+
   // Build subtitle from paper info
   let paperSubtitle = "";
   if (displayPaper) {
@@ -463,7 +520,7 @@ export default function Processing() {
   }
 
   // For scene preview: first 4 scenes, mark rendering state
-  const previewScenes = scenePlan.slice(0, 4);
+  // Full scene plan shown below progress stages
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FAFAF8" }}>
@@ -641,30 +698,39 @@ export default function Processing() {
             {completedTime !== null
               ? `Completed in ${completedTime}s`
               : activeStage?.label || "Starting..."}
+            {estimatedTimeRemaining && (
+              <span style={{ fontWeight: 400, color: "#9CA3AF", marginLeft: 8, fontSize: 13 }}>
+                {estimatedTimeRemaining}
+              </span>
+            )}
           </span>
           <div className="flex items-center gap-3">
             {completedTime === null && !pipelineError && useRealBackend && (
               <button
-                onClick={async () => {
-                  if (jobId) {
-                    console.log(`[Pipeline ${jobId}] Cancelling...`);
-                    await cancelJob(jobId);
-                    removeJob(jobId);
-                    setPipelineError("Cancelled by user.");
-                    clearInterval(pollingRef.current);
+                onClick={() => {
+                  if (window.confirm("Stop generating this video? Progress will be lost.")) {
+                    if (jobId) {
+                      console.log(`[Pipeline ${jobId}] Cancelling...`);
+                      cancelJob(jobId);
+                      removeJob(jobId);
+                      clearInterval(pollingRef.current);
+                      navigate("/");
+                    }
                   }
                 }}
                 style={{
                   background: "none",
-                  border: "1px solid #E5E7EB",
+                  border: "1px solid #D1D5DB",
                   borderRadius: 6,
                   padding: "4px 12px",
                   cursor: "pointer",
                   fontFamily: "Inter, sans-serif",
                   fontSize: 12,
-                  color: "#DC2626",
+                  color: "#6B7280",
                   fontWeight: 500,
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#DC2626"; e.currentTarget.style.borderColor = "#FCA5A5"; e.currentTarget.style.backgroundColor = "#FEF2F2"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#6B7280"; e.currentTarget.style.borderColor = "#D1D5DB"; e.currentTarget.style.backgroundColor = "transparent"; }}
               >
                 Stop
               </button>
@@ -750,24 +816,11 @@ export default function Processing() {
                   </div>
                 )}
                 {isCurrent && (
-                  <div
-                    className="flex items-center justify-center"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      border: "2px solid #2563EB",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        backgroundColor: "#2563EB",
-                      }}
-                    />
-                  </div>
+                  <Loader2
+                    size={24}
+                    color="#2563EB"
+                    className="animate-spin"
+                  />
                 )}
                 {isPending && (
                   <div
@@ -813,114 +866,146 @@ export default function Processing() {
         })}
       </div>
 
-      {/* ── Scene preview ── */}
-      {previewScenes.length > 0 && (
+      {/* ── Insight ticker ── */}
+      {completedTime === null && !pipelineError && (() => {
+        const insights = [
+          "\"What if the paper was a video? A short, digestible video that walks you through the key ideas?\"",
+          "\"Instead of asking the LLM to freestyle a script, we gave it a rigid JSON template and asked it to fill in specific fields.\"",
+          "\"It takes a seemingly chaotic probabilistic system and imposes clean, mathematical structure on it — without sacrificing speed.\"",
+          "\"The difference between producing coherent videos and producing garbled nonsense? Constrained decoding.\"",
+          `Your video will have ${scenesTotal || scenePlan.length || "~15"} scenes, each with its own animation and narration.`,
+          "Each scene is rendered using Remotion, a React-based video framework that produces cinema-quality animations.",
+          "The narration is synthesized using Azure Neural Voice, producing natural-sounding speech for each scene.",
+          "Every research paper is analyzed section-by-section to extract figures, tables, and key findings.",
+          "PaperVideo uses structured outputs with constrained decoding to guarantee valid scene plans every time.",
+          "Tables and figures from the paper are automatically extracted and included as dedicated visual scenes.",
+        ];
+        const currentInsight = insights[Math.floor(elapsedTime / 8) % insights.length];
+        return (
+          <div style={{ padding: "32px 240px 0" }}>
+            <div
+              style={{
+                padding: "20px 28px",
+                backgroundColor: "#FAFAF8",
+                borderLeft: "3px solid #D1D5DB",
+                borderRadius: "0 10px 10px 0",
+              }}
+            >
+              <p style={{
+                fontFamily: "'Source Serif 4', serif",
+                fontSize: 14,
+                fontStyle: "italic",
+                color: "#3F3F46",
+                lineHeight: 1.6,
+                margin: 0,
+              }}>
+                {currentInsight}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Scene plan ── */}
+      {scenePlan.length > 0 && (
         <div style={{ padding: "40px 240px 60px" }}>
-          <p
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 12,
-              color: "#9CA3AF",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              marginBottom: 16,
-              fontWeight: 500,
-            }}
-          >
-            Scene Preview
-          </p>
-          <div className="flex" style={{ gap: 12 }}>
-            {previewScenes.map((scene, i) => {
-              // A scene is "done" if we're past the rendering stage, or if during rendering scenesDone > i
+          <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
+            <span style={{ fontFamily: "'Source Serif 4', serif", fontSize: 20, color: "#1A1A1A", fontWeight: 600 }}>
+              Script
+            </span>
+            <span style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#9CA3AF" }}>
+              {scenePlan.length} scenes
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {scenePlan.map((scene, i) => {
+              const RENDER_CONCURRENCY = 4;
               const sceneComplete =
                 currentStage > 2 || (currentStage === 2 && scenesDone > i);
               const sceneRendering =
-                currentStage === 2 && scenesDone === i && !pipelineError;
+                currentStage === 2 && i >= scenesDone && i < scenesDone + RENDER_CONCURRENCY && !pipelineError;
+              const isSection = scene.type === "section_header";
 
-              if (sceneComplete) {
-                // Completed scene: dark card
-                const info = templateInfo[scene.type];
-                return (
-                  <div
-                    key={scene.id}
-                    className="flex-1 flex flex-col justify-end"
-                    style={{
-                      height: 140,
-                      borderRadius: 10,
-                      backgroundColor: "#1A1A1A",
-                      padding: 14,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: "#FFFFFF",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        fontFamily: "'Inter', sans-serif",
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {scene.label}
-                    </p>
-                    <p
-                      style={{
-                        color: "rgba(255,255,255,0.5)",
-                        fontSize: 11,
-                        fontFamily: "'Inter', sans-serif",
-                        marginTop: 4,
-                      }}
-                    >
-                      {info?.label || scene.type.replace(/_/g, " ")} · {scene.duration}s
-                    </p>
-                  </div>
-                );
-              }
-
-              if (sceneRendering) {
-                // Currently rendering: dashed border
-                return (
-                  <div
-                    key={scene.id}
-                    className="flex-1 flex flex-col items-center justify-center"
-                    style={{
-                      height: 140,
-                      borderRadius: 10,
-                      backgroundColor: "#F3F4F6",
-                      border: "2px dashed #D1D5DB",
-                    }}
-                  >
-                    <Loader2
-                      size={20}
-                      style={{ color: "#9CA3AF" }}
-                      className="animate-spin"
-                    />
-                    <p
-                      style={{
-                        color: "#9CA3AF",
-                        fontSize: 12,
-                        fontFamily: "'Inter', sans-serif",
-                        marginTop: 8,
-                      }}
-                    >
-                      Rendering...
-                    </p>
-                  </div>
-                );
-              }
-
-              // Pending scene: light dashed
               return (
                 <div
                   key={scene.id}
-                  className="flex-1"
                   style={{
-                    height: 140,
-                    borderRadius: 10,
-                    backgroundColor: "#F9FAFB",
-                    border: "1.5px dashed #E5E7EB",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 14,
+                    padding: isSection ? "16px 0 8px" : "8px 0",
+                    borderBottom: isSection ? "none" : "1px solid #F3F4F6",
+                    opacity: sceneComplete ? 1 : sceneRendering ? 1 : currentStage >= 2 ? 0.4 : 1,
+                    transition: "opacity 0.3s",
                   }}
-                />
+                >
+                  {/* Status indicator */}
+                  <div style={{ flexShrink: 0, marginTop: isSection ? 4 : 2, width: 20 }}>
+                    {sceneComplete ? (
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <circle cx="9" cy="9" r="9" fill="#DCFCE7" />
+                        <path d="M5 9L8 12L13 6" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : sceneRendering ? (
+                      <Loader2 size={18} color="#2563EB" className="animate-spin" />
+                    ) : (
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", border: "1.5px solid #E5E7EB" }} />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  {isSection ? (
+                    <div style={{ flex: 1 }}>
+                      <span style={{
+                        fontFamily: "'Source Serif 4', serif",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "#1A1A1A",
+                        letterSpacing: "-0.01em",
+                      }}>
+                        {scene.label}
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center gap-2" style={{ marginBottom: 2 }}>
+                        <span style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: sceneComplete ? "#1A1A1A" : "#3F3F46",
+                        }}>
+                          {scene.label}
+                        </span>
+                        <span style={{
+                          fontSize: 10,
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          color: "#A1A1AA",
+                          backgroundColor: "#F4F4F5",
+                          padding: "1px 6px",
+                          borderRadius: 3,
+                        }}>
+                          {scene.type.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      {scene.narration && (
+                        <p style={{
+                          fontFamily: "Inter, sans-serif",
+                          fontSize: 12,
+                          color: "#9CA3AF",
+                          lineHeight: 1.5,
+                          margin: 0,
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                        }}>
+                          {scene.narration}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

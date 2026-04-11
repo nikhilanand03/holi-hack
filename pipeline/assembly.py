@@ -239,7 +239,7 @@ def _concat_filter(clip_paths: list[Path], output_path: Path) -> Path:
 
     # Scale all clips to the same resolution before concat (handles mixed sizes)
     scale_parts = "".join(
-        f"[{i}:v:0]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v{i}];"
+        f"[{i}:v:0]scale=1440:810:force_original_aspect_ratio=decrease,pad=1440:810:(ow-iw)/2:(oh-ih)/2,setsar=1[v{i}];"
         for i in range(n)
     )
     concat_inputs = "".join(f"[v{i}][{i}:a:0]" for i in range(n))

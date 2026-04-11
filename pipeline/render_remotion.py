@@ -245,7 +245,7 @@ def _render_remotion_scene(
         "--codec", "h264",
         "--crf", "18",
         "--frames", f"0-{anim_frames - 1}",
-        "--scale", "0.667",
+        "--scale", "0.75",
     ]
     cmd = base_cmd
 

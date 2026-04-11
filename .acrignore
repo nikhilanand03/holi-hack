@@ -1,0 +1,17 @@
+platform/
+output/
+uploaded-pdfs/
+.venv/
+.git/
+sample-pdfs/
+.env
+keys.json
+__pycache__/
+*.pyc
+.DS_Store
+brand-guidelines/
+brand-assets/
+.vercel/
+remotion-presets/build/
+remotion-presets/node_modules/
+templates/
