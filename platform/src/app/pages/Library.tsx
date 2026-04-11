@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router";
 import { useState, useEffect, useCallback } from "react";
 import { Search, Play } from "lucide-react";
-import { getLibrary, seedSampleItems } from "../lib/data";
-import { getLibraryFromSupabase, syncLocalLibraryToSupabase } from "../lib/supabaseVideos";
+import { seedSampleItems } from "../lib/data";
+import { examplePapers, mockPaperData } from "../lib/data";
+import { getLibraryFromSupabase } from "../lib/supabaseVideos";
 import { useAuth } from "../lib/useAuth";
 import UserMenu from "../components/UserMenu";
 
@@ -31,30 +32,38 @@ export default function Library() {
   const [library, setLibrary] = useState<any[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(true);
 
+  // Build sample videos list from hardcoded data
+  const sampleVideos = examplePapers.map((p) => {
+    const data = mockPaperData[p.id];
+    return {
+      id: `sample_${p.id}`,
+      title: p.title,
+      authors: p.authors,
+      venue: data?.venue || "",
+      year: data?.year || 0,
+      duration: p.duration || data?.duration || 0,
+      blobUrl: p.blobUrl,
+      realJobId: p.realJobId,
+      arxivId: p.arxivId,
+      isSample: true,
+      generatedAt: new Date("2025-01-01").toISOString(),
+    };
+  });
+
   const loadLibrary = useCallback(async () => {
     setLibraryLoading(true);
-    seedSampleItems();
-
-    // Always show sample videos
-    const localLib = getLibrary();
-    const sampleVideos = localLib.filter((v: any) => v.isSample);
 
     if (user) {
       try {
-        // Sync any local videos with blob URLs to Supabase
-        await syncLocalLibraryToSupabase(user.id, localLib);
-        // Fetch from Supabase — single source of truth for user videos
         const cloudVideos = await getLibraryFromSupabase(user.id);
-        // Only show cloud videos that have a blob URL (playable)
         const playableVideos = cloudVideos.filter((v: any) => v.blobUrl);
         const cloudIds = new Set(playableVideos.map((v: any) => v.id));
-        const extraSamples = sampleVideos.filter((v: any) => !cloudIds.has(v.id));
+        const extraSamples = sampleVideos.filter((v) => !cloudIds.has(v.id));
         setLibrary([...playableVideos, ...extraSamples]);
       } catch {
         setLibrary(sampleVideos);
       }
     } else {
-      // Not signed in — only show samples
       setLibrary(sampleVideos);
     }
     setLibraryLoading(false);
