@@ -37,11 +37,29 @@ _default_origins = [
 ]
 _cors_origins = os.environ.get("CORS_ORIGINS", "").split(",") if os.environ.get("CORS_ORIGINS") else _default_origins
 
+
+from starlette.middleware.cors import CORSMiddleware as _BaseCORS
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+
+class _VercelCORSMiddleware(_BaseCORS):
+    """CORSMiddleware that also allows any *.vercel.app preview URL."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            headers = dict(scope.get("headers", []))
+            origin = headers.get(b"origin", b"").decode()
+            if origin.endswith(".vercel.app") and origin not in self.allow_origins:
+                self.allow_origins = {*self.allow_origins, origin}
+        await super().__call__(scope, receive, send)
+
+
 app.add_middleware(
-    CORSMiddleware,
+    _VercelCORSMiddleware,
     allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 

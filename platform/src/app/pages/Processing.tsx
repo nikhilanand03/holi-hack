@@ -898,8 +898,7 @@ export default function Processing() {
 
       {/* ── Insight ticker ── */}
       {completedTime === null && !pipelineError && (() => {
-        const insights = [
-          // From the blog
+        const blogQuotes = [
           "\"What if the paper was a video? A short, digestible video that walks you through the key ideas?\"",
           "\"Instead of asking the LLM to freestyle a script, we gave it a rigid JSON template and asked it to fill in specific fields.\"",
           "\"It takes a seemingly chaotic probabilistic system and imposes clean, mathematical structure on it — without sacrificing speed.\"",
@@ -909,7 +908,8 @@ export default function Processing() {
           "\"Every field was always present, every value was the right type — no extra commentary that would break our parser.\"",
           "\"We build a Finite State Machine of the grammar. The allowed tokens change depending on the current state of the output.\"",
           "\"The precomputation happens once, and every subsequent step is instant — a massive improvement over the naive approach.\"",
-          // About the pipeline
+        ];
+        const pipelineInfo = [
           `Your video will have ${scenesTotal || scenePlan.length || "~15"} scenes, each with its own animation and narration.`,
           "Each scene is rendered using Remotion, a React-based video framework that produces cinema-quality animations.",
           "The narration is synthesized using Azure Neural Voice, producing natural-sounding speech for each scene.",
@@ -922,7 +922,11 @@ export default function Processing() {
           "PaperVideo was built in a weekend hackathon and has been iteratively improved ever since.",
           "The entire pipeline runs on Azure — from PDF extraction to video assembly — in under 5 minutes.",
         ];
-        const currentInsight = insights[Math.floor(elapsedTime / 8) % insights.length];
+        // Alternate: even ticks = blog quote, odd ticks = pipeline info
+        const tick = Math.floor(elapsedTime / 8);
+        const currentInsight = tick % 2 === 0
+          ? blogQuotes[Math.floor(tick / 2) % blogQuotes.length]
+          : pipelineInfo[Math.floor(tick / 2) % pipelineInfo.length];
         return (
           <div style={{ padding: "32px 240px 0" }}>
             <div
