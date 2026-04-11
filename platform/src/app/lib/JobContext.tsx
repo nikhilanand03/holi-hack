@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { getJobStatus, type JobStatus } from "./api";
+import { getActiveJobs, getJobStatus, type JobStatus } from "./api";
 
 interface ActiveJob {
   jobId: string;
@@ -7,14 +7,12 @@ interface ActiveJob {
   status: JobStatus["status"];
   scenesTotal: number;
   scenesDone: number;
-  startedAt: number;
 }
 
 interface JobContextValue {
   activeJobs: ActiveJob[];
   addJob: (jobId: string, paperName: string) => void;
   removeJob: (jobId: string) => void;
-  /** Most recent job that just finished (cleared after being read) */
   completedJob: ActiveJob | null;
   clearCompleted: () => void;
 }
@@ -31,30 +29,38 @@ export function useJobs() {
   return useContext(JobContext);
 }
 
-const STORAGE_KEY = "papervideo_active_jobs";
-
-function loadJobs(): ActiveJob[] {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveJobs(jobs: ActiveJob[]) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
-}
-
 export function JobProvider({ children }: { children: React.ReactNode }) {
-  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>(loadJobs);
+  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [completedJob, setCompletedJob] = useState<ActiveJob | null>(null);
+  // Track paper names locally (backend doesn't know them)
+  const paperNamesRef = useRef<Record<string, string>>({});
   const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const initializedRef = useRef(false);
+
+  // On mount, fetch active jobs from backend to recover after refresh
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    getActiveJobs().then((backendJobs) => {
+      if (backendJobs.length > 0) {
+        const recovered = backendJobs.map((j) => ({
+          jobId: j.job_id,
+          paperName: paperNamesRef.current[j.job_id] || "Paper",
+          status: j.status,
+          scenesTotal: j.scenes_total,
+          scenesDone: j.scenes_done,
+        }));
+        setActiveJobs(recovered);
+      }
+    });
+  }, []);
 
   const addJob = useCallback((jobId: string, paperName: string) => {
+    paperNamesRef.current[jobId] = paperName;
     setActiveJobs((prev) => {
       if (prev.some((j) => j.jobId === jobId)) return prev;
-      const next = [
+      return [
         ...prev,
         {
           jobId,
@@ -62,27 +68,20 @@ export function JobProvider({ children }: { children: React.ReactNode }) {
           status: "queued" as const,
           scenesTotal: 0,
           scenesDone: 0,
-          startedAt: Date.now(),
         },
       ];
-      saveJobs(next);
-      return next;
     });
   }, []);
 
   const removeJob = useCallback((jobId: string) => {
-    setActiveJobs((prev) => {
-      const next = prev.filter((j) => j.jobId !== jobId);
-      saveJobs(next);
-      return next;
-    });
+    setActiveJobs((prev) => prev.filter((j) => j.jobId !== jobId));
   }, []);
 
   const clearCompleted = useCallback(() => {
     setCompletedJob(null);
   }, []);
 
-  // Poll active jobs
+  // Poll active jobs for status updates
   useEffect(() => {
     if (activeJobs.length === 0) {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -90,59 +89,42 @@ export function JobProvider({ children }: { children: React.ReactNode }) {
     }
 
     const poll = async () => {
-      const updates: ActiveJob[] = [];
       let didComplete: ActiveJob | null = null;
 
-      for (const job of activeJobs) {
-        if (job.status === "done" || job.status === "failed") {
-          // Already terminal — don't re-poll
-          continue;
-        }
-        try {
-          const status = await getJobStatus(job.jobId);
-          const updated = {
-            ...job,
-            status: status.status,
-            scenesTotal: status.scenes_total,
-            scenesDone: status.scenes_done,
-          };
-          updates.push(updated);
-
-          if (status.status === "done") {
-            didComplete = updated;
+      const updated = await Promise.all(
+        activeJobs.map(async (job) => {
+          if (job.status === "done" || job.status === "failed") return null;
+          try {
+            const status = await getJobStatus(job.jobId);
+            const u = {
+              ...job,
+              status: status.status,
+              scenesTotal: status.scenes_total,
+              scenesDone: status.scenes_done,
+            };
+            if (status.status === "done") didComplete = u;
+            return u;
+          } catch {
+            return job;
           }
-        } catch {
-          updates.push(job); // keep as-is on error
-        }
-      }
+        })
+      );
 
-      if (updates.length > 0) {
-        setActiveJobs((prev) => {
-          const next = prev.map((j) => {
-            const update = updates.find((u) => u.jobId === j.jobId);
-            return update || j;
-          });
-          // Remove completed/failed jobs from active list
-          const stillActive = next.filter(
-            (j) => j.status !== "done" && j.status !== "failed"
-          );
-          saveJobs(stillActive);
-          return stillActive;
+      setActiveJobs((prev) => {
+        const next = prev.map((j) => {
+          const u = updated.find((u) => u && u.jobId === j.jobId);
+          return u || j;
         });
-      }
+        return next.filter((j) => j.status !== "done" && j.status !== "failed");
+      });
 
-      if (didComplete) {
-        setCompletedJob(didComplete);
-      }
+      if (didComplete) setCompletedJob(didComplete);
     };
 
     poll();
     pollRef.current = setInterval(poll, 3000);
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [activeJobs.length]); // re-setup when job count changes
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [activeJobs.length]);
 
   return (
     <JobContext.Provider

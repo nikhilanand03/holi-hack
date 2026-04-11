@@ -75,6 +75,25 @@ async def cancel_pipeline(job_id: str):
     raise HTTPException(404, "Job not found or already completed.")
 
 
+@app.get("/active-jobs")
+async def active_jobs():
+    """Return all in-progress jobs so the frontend can recover after refresh."""
+    from pipeline import _jobs, Status
+    active = []
+    for job_id, job in _jobs.items():
+        status = job.get("status")
+        if hasattr(status, "value"):
+            status = status.value
+        if status not in ("done", "failed"):
+            active.append({
+                "job_id": job_id,
+                "status": status,
+                "scenes_total": job.get("scenes_total", 0),
+                "scenes_done": job.get("scenes_done", 0),
+            })
+    return active
+
+
 @app.get("/status/{job_id}")
 async def job_status(job_id: str):
     job = get_job(job_id)

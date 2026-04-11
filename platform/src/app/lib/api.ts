@@ -64,6 +64,17 @@ export async function uploadPdf(file: File, mode: "brief" | "detailed" = "brief"
   return data.job_id;
 }
 
+/** Fetch all in-progress jobs from the backend. */
+export async function getActiveJobs(): Promise<{ job_id: string; status: JobStatus["status"]; scenes_total: number; scenes_done: number }[]> {
+  try {
+    const res = await fetch(`${API_BASE}/active-jobs`);
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 /** Cancel a running pipeline job. */
 export async function cancelJob(jobId: string): Promise<void> {
   await fetch(`${API_BASE}/cancel/${jobId}`, { method: "POST" });
