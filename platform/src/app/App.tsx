@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { router } from './routes';
 import { JobProvider } from './lib/JobContext';
 
+
 export default function App() {
   return (
     <JobProvider>
