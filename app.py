@@ -70,6 +70,19 @@ async def upload_pdf(file: UploadFile, mode: str = "brief", user_email: str = ""
     if mode not in ("brief", "detailed"):
         mode = "brief"
 
+    # Check page count
+    import fitz
+    content = await file.read()
+    try:
+        doc = fitz.open(stream=content, filetype="pdf")
+        page_count = doc.page_count
+        doc.close()
+    except Exception:
+        raise HTTPException(400, "Could not read the PDF file.")
+    if page_count > 50:
+        raise HTTPException(400, f"PDF has {page_count} pages. Maximum is 50 pages.")
+    await file.seek(0)  # reset for downstream reading
+
     # Check queue capacity
     with _orch._queue_lock:
         if len(_orch._queue_order) >= _orch.MAX_QUEUE_SIZE:

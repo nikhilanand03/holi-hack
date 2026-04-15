@@ -60,6 +60,8 @@ export default function Home() {
       } catch (err: any) {
         if (err.message?.includes("capacity") || err.message?.includes("503")) {
           setError("capacity");
+        } else if (err.message?.includes("pages")) {
+          setError(err.message);
         } else {
           console.warn("Backend not available, using demo mode:", err.message);
           const jobId = getOrCreateVideoId("upload_" + Date.now());
